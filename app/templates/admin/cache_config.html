@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Cache Config - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> <a href="{{ url_for('admin.cache_panel') }}">Cache</a>
+    <span class="sep">/</span> Config
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;">
+    <h2>Cache Configuration</h2>
+    <p class="muted">Cache limits are set via environment variables and require a container restart.</p>
+    <table>
+        <thead>
+            <tr><th>Variable</th><th>Current</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>CACHE_MAX_BYTES</code></td>
+                <td class="mono">{{ max_bytes | human_bytes }}</td>
+                <td>Hard limit for total cache size (default: 16G). Suffixes: K, M, G, T.</td>
+            </tr>
+            <tr>
+                <td><code>CACHE_EVICTION_THRESHOLD</code></td>
+                <td class="mono">0.9</td>
+                <td>Fraction of max at which proactive eviction starts.</td>
+            </tr>
+            <tr>
+                <td><code>CACHE_EVICTION_TARGET</code></td>
+                <td class="mono">2G</td>
+                <td>How many bytes to free when eviction runs.</td>
+            </tr>
+            <tr>
+                <td><code>CACHE_MIN_FREE</code></td>
+                <td class="mono">512M</td>
+                <td>Minimum free disk space to keep for OS.</td>
+            </tr>
+        </tbody>
+    </table>
+    <div style="margin-top:1rem;">
+        <a class="btn" href="{{ url_for('admin.cache_panel') }}">← Back</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Modules - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> Modules
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+    <h2>Modules</h2>
+    <a class="btn btn-primary" href="{{ url_for('admin.new_module') }}">+ New Module</a>
+</div>
+
+<div class="module-list">
+    {% for name, m in modules.items() %}
+        <div class="module-item">
+            <div class="meta">
+                <span class="name">{{ m.display_name }} <code class="muted">({{ name }})</code></span>
+                <span class="desc">
+                    {% if m.healthy %}
+                        <span class="status-healthy">● Healthy</span>
+                    {% elif m.enabled %}
+                        <span class="status-unhealthy">● {{ m.error or 'Error' }}</span>
+                    {% else %}
+                        <span class="status-disabled">● Disabled</span>
+                    {% endif %}
+                    — {{ m.items }} files — checked {{ m.last_checked }}
+                </span>
+            </div>
+            <div class="actions">
+                <a class="btn" href="{{ url_for('admin.view_module', name=name) }}">View</a>
+                <form method="post" action="{{ url_for('admin.reload_module', name=name) }}" style="display:inline;">
+                    <button class="btn btn-outline" type="submit">Reload</button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

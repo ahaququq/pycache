@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'New' if source is none else 'Edit' }} Source - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> <a href="{{ url_for('admin.list_sources') }}">Sources</a>
+    <span class="sep">/</span> {{ 'New' if source is none else 'Edit' }}
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:800px;">
+    <h2>{{ 'New Source' if source is none else 'Edit Source: ' ~ source.name }}</h2>
+    <form method="post">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" value="{{ source.name if source else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Kind (Module)</label>
+            <select name="kind" required>
+                <option value="">— select —</option>
+                {% for name, mod in modules.items() %}
+                    <option value="{{ name }}" {% if source and source.kind == name %}selected{% endif %}>{{ mod.display_name }} ({{ name }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="enabled" {% if not source or source.enabled %}checked{% endif %}>
+                Enabled
+            </label>
+        </div>
+
+        <h3 style="margin:1.5rem 0 .5rem;">Module Configuration</h3>
+        {% set mod = modules.get(source.kind if source else '') %}
+        {% if mod %}
+            {% for field in mod.get_config_schema() %}
+                <div class="config-field">
+                    <label>{{ field.label }} <span class="muted">({{ field.key }})</span></label>
+                    <input type="{{ field.type or 'text' }}" name="cfg_{{ field.key }}" value="{{ (config or {}).get(field.key, field.default or '') }}" placeholder="{{ field.help or '' }}">
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="muted">Select a module kind above to see its configuration fields.</p>
+        {% endif %}
+
+        <div style="display:flex; gap:.5rem; margin-top:1rem;">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a class="btn" href="{{ url_for('admin.list_sources') }}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

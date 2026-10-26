@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Cache Settings - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> Cache
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Cache Statistics</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem;">
+        <div class="stat-card">
+            <div class="label">Used</div>
+            <div class="value">{{ cache.total_bytes | human_bytes }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Limit</div>
+            <div class="value">{{ cache.max_bytes | human_bytes }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Files</div>
+            <div class="value">{{ cache.file_count }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Disk Free</div>
+            <div class="value">{{ cache.free_bytes | human_bytes }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Actions</h2>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+        <form method="post" action="{{ url_for('admin.purge_cache') }}" onsubmit="return confirm('Purge ALL cached files? This cannot be undone.')">
+            <button class="btn btn-danger" type="submit">Purge All Cache</button>
+        </form>
+        <a class="btn" href="{{ url_for('admin.cache_config') }}">Configure Limits</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Current Config (env vars)</h2>
+    <p class="muted">These are read from environment variables and require a restart to change.</p>
+    <table>
+        <tbody>
+            <tr><td>CACHE_MAX_BYTES</td><td class="mono">{{ cache.max_bytes | human_bytes }}</td></tr>
+            <tr><td>CACHE_EVICTION_THRESHOLD</td><td class="mono">{{ '90%' }}</td></tr>
+            <tr><td>CACHE_EVICTION_TARGET</td><td class="mono">2 GiB</td></tr>
+            <tr><td>CACHE_MIN_FREE</td><td class="mono">512 MiB</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

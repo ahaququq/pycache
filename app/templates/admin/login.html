@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> Admin
+    <span class="sep">/</span> Login
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:400px;">
+    <h2>Admin Login</h2>
+    <form method="post">
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" name="username" required autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
+    </form>
+</div>
+{% endblock %}
