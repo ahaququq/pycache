@@ -105,7 +105,7 @@ class ModuleRegistry:
             seen: set[str] = set()
             if MODULES_DIR.exists():
                 for path in sorted(MODULES_DIR.glob("*.py")):
-                    if path.stem == "base":
+                    if path.stem in ("base", "_loader"):
                         continue
                     seen.add(path.stem)
                     inst = self._load_file(path)
@@ -157,12 +157,14 @@ class ModuleRegistry:
             return result
 
     def _watchdog(self) -> None:
-        while not self._stop.wait(MODULE_RELOAD_INTERVAL):
+        # Use a longer interval to avoid constant reloads
+        interval = max(MODULE_RELOAD_INTERVAL, 30)
+        while not self._stop.wait(interval):
             try:
                 changed = False
                 if MODULES_DIR.exists():
                     for path in MODULES_DIR.glob("*.py"):
-                        if path.stem == "base":
+                        if path.stem in ("base", "_loader"):
                             continue
                         try:
                             mtime = path.stat().st_mtime

@@ -21,6 +21,18 @@ from .modules._loader import registry
 log = logging.getLogger("sources")
 
 
+def _as_dict(value) -> dict:
+    """Convert a value to dict, handling dict, dataclass field, or other iterables."""
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return dict(value)
+    try:
+        return dict(value)
+    except (TypeError, ValueError):
+        return {}
+
+
 class SourceManager:
     def __init__(self) -> None:
         self._instances: dict[int, ModuleBase] = {}  # source_id -> module instance
@@ -50,7 +62,10 @@ class SourceManager:
             inst = mod.__class__()
             inst.name = mod.name
             inst.display_name = getattr(mod, "display_name", mod.name)
-            inst.config = dict(getattr(mod, "config", {}))
+            # Handle config safely
+            base_config = _as_dict(getattr(mod, "config", None))
+            inst.config = _as_dict(getattr(inst, "config", None))
+            inst.config.update(base_config)
             inst.config.update(config)
             new_instances[sid] = inst
         self._instances = new_instances

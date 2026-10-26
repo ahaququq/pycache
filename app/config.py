@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import sys
 from pathlib import Path
 
 
@@ -52,7 +53,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 APP_DIR = Path(__file__).resolve().parent
 CACHE_DIR = Path(os.environ.get("CACHE_DIR", str(APP_DIR / "cache")))
 DATA_DIR = Path(os.environ.get("DATA_DIR", str(APP_DIR / "data")))
-MODULES_DIR = Path(os.environ.get("MODULES_DIR", str(APP_DIR / "modules")))
+MODULES_DIR = Path("/app/app/modules")
+
 DB_PATH = DATA_DIR / "cache_server.db"
 
 # Ensure directories exist at import time (idempotent).

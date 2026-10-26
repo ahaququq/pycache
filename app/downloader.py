@@ -30,7 +30,7 @@ _SESSION.allow_redirects = False
 
 @dataclass
 class DownloadResult:
-    ok: bool
+    ok: bool = False
     status: int = 0
     final_url: str = ""
     content_type: str = ""

@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  pycache:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      CACHE_MAX_BYTES: 16G
+      DATA_DIR: /app/data
+      MODULES_DIR: /app/modules
+    volumes:
+      - cache-data:/app/cache
+      - app-data:/app/data
+      - ./nginx/conf.d/cache.conf:/etc/nginx/conf.d/cache.conf:ro
+
+volumes:
+  cache-data:
+  app-data:

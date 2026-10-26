@@ -10,6 +10,7 @@ from flask import (
     Response,
     abort,
     current_app,
+    redirect,
     render_template,
     request,
     send_file,
@@ -88,6 +89,9 @@ def serve_cached(local_path: str) -> Response:
 # Info pages: /info/by-path and /info/by-source
 # ---------------------------------------------------------------------------
 @public.route("/")
+def root():
+    return redirect(url_for("public.index"))
+
 @public.route("/info")
 def index():
     return render_template("index.html")

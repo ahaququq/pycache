@@ -9,10 +9,9 @@ import os
 from pathlib import Path
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 __version__ = "1.0.0"
-
-from . import __version__
 from .auth import get_secret
 from .cache import purge_all
 from .config import (
@@ -52,11 +51,16 @@ def create_app() -> Flask:
     # Background watchdog for module file changes.
     registry.start()
 
-    # Register blueprints / routes.
+    # If running behind a reverse proxy (or in this case, Nginx proxying to Flask),
+    # ensure Flask handles the headers correctly.
+    # We trust the proxy since it's the same container, but Nginx should
+    # pass 'X-Forwarded-Proto' etc.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Register blueprints
     from .routes.public import public
     from .routes.admin import admin
     from .routes.api import api
-
     app.register_blueprint(public)
     app.register_blueprint(admin, url_prefix="/admin")
     app.register_blueprint(api, url_prefix="/api")

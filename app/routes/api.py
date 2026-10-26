@@ -88,7 +88,7 @@ def reload_sources():
 
 @api.route("/modules/reload", methods=["POST"])
 def reload_modules():
-    from ..modules.loader import registry
+    from ..modules._loader import registry
     registry.reload_all()
     sources.reload()
     return jsonify({"ok": True})

@@ -1,0 +1,16 @@
+GET
+https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/editor/editor.main.css
+NS_ERROR_CORRUPTED_CONTENT
+GET
+https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js
+NS_ERROR_CORRUPTED_CONTENT
+Zablokowano zasób „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/editor/editor.main.css” z powodu niezgodności (X-Content-Type-Options: nosniff) typu MIME („text/plain”). edit
+Zablokowano zasób „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js” z powodu niezgodności (X-Content-Type-Options: nosniff) typu MIME („text/plain”). edit
+GET
+https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js
+NS_ERROR_CORRUPTED_CONTENT
+Zablokowano zasób „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js” z powodu niezgodności (X-Content-Type-Options: nosniff) typu MIME („text/plain”). edit
+Wczytanie się nie powiodło dla elementu „script” ze źródłem „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js”. edit:81:89
+Uncaught ReferenceError: require is not defined
+    <anonymous> http://localhost/admin/modules/test_module/edit:84
+ edit:84:1

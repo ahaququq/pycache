@@ -1,0 +1,17 @@
+Viewer:
+1. Content-Security-Policy: Ustawienia strony zablokowały wykonanie wbudowanego skryptu (script-src-elem), ponieważ narusza on następującą dyrektywę: „script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net”. Rozważ użycie „hash” („sha256-ERVgOzwyMAqJ0PjbuZxfSwOn4LieXMgvEhRsQpDOymI=”) lub „nonce”.
+2. Content-Security-Policy: Ustawienia strony zablokowały wykonanie wbudowanego skryptu (script-src-elem), ponieważ narusza on następującą dyrektywę: „script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net”. Rozważ użycie „hash” („sha256-RzZN6O2A1J73Rs/s5usmZQ8IQMCuWq3EPdvEfkBmE7Y=”) lub „nonce”.
+3. Content-Security-Policy: Ustawienia strony zablokowały wykonanie wbudowanego skryptu (script-src-elem), ponieważ narusza on następującą dyrektywę: „script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net”. Rozważ użycie „hash” („sha256-qSsMkM8nRqu6AHqMp7AtU+Np5696vON4o4v/pFOQJTw=”) lub „nonce”.
+
+Editor:
+1. GET https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/editor/editor.main.css   NS_ERROR_CORRUPTED_CONTENT
+2. GET https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js   NS_ERROR_CORRUPTED_CONTENT
+3. Content-Security-Policy: Ustawienia strony zablokowały wykonanie wbudowanego skryptu (script-src-elem), ponieważ narusza on następującą dyrektywę: „script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net”. Rozważ użycie „hash” („sha256-q1oRIB/qMYchgF1dm0eTNSioQ6OegNo40rTtOGC6CnQ=”) lub „nonce”.
+4. Content-Security-Policy: Ustawienia strony zablokowały wykonanie wbudowanego skryptu (script-src-elem), ponieważ narusza on następującą dyrektywę: „script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net”. Rozważ użycie „hash” („sha256-q1oRIB/qMYchgF1dm0eTNSioQ6OegNo40rTtOGC6CnQ=”) lub „nonce”.
+5. Content-Security-Policy: Ustawienia strony zablokowały wykonanie wbudowanego skryptu (script-src-elem), ponieważ narusza on następującą dyrektywę: „script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net”. Rozważ użycie „hash” („sha256-qSsMkM8nRqu6AHqMp7AtU+Np5696vON4o4v/pFOQJTw=”) lub „nonce”.
+6. Zablokowano zasób „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js” z powodu niezgodności (X-Content-Type-Options: nosniff) typu MIME („text/plain”).
+7. Zablokowano zasób „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/editor/editor.main.css” z powodu niezgodności (X-Content-Type-Options: nosniff) typu MIME („text/plain”).
+8. GET https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js   NS_ERROR_CORRUPTED_CONTENT 
+9. Zablokowano zasób „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js” z powodu niezgodności (X-Content-Type-Options: nosniff) typu MIME („text/plain”).
+10. Wczytanie się nie powiodło dla elementu „script” ze źródłem „https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js”.
+11. Content-Security-Policy: Ustawienia strony zablokowały wykonanie wbudowanego skryptu (script-src-elem), ponieważ narusza on następującą dyrektywę: „script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net”. Rozważ użycie „hash” („sha256-AXBDGBAwvOw0van6aA1yZQXtv9aJUr4y+DK5MaW9hSo=”) lub „nonce”.

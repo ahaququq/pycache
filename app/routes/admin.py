@@ -117,6 +117,14 @@ def login():
                 return redirect(url_for("admin.login"))
         return render_template("admin/setup.html")
 
+    # If already logged in, redirect to dashboard
+    token = request.cookies.get(ADMIN_COOKIE_NAME)
+    if token:
+        secret = get_secret()
+        user = verify_cookie(token, secret, ADMIN_COOKIE_MAX_AGE)
+        if user:
+            return redirect(url_for("admin.dashboard"))
+
     # Normal login.
     if request.method == "POST":
         user = request.form.get("username", "").strip()

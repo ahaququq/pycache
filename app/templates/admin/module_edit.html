@@ -41,10 +41,12 @@
         </div>
     </form>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js"></script>
 <script>
+// Load Monaco editor
 require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs' }});
 require(['vs/editor/editor.main'], function() {
     var editor = monaco.editor.create(document.getElementById('editor'), {
@@ -68,5 +70,4 @@ require(['vs/editor/editor.main'], function() {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 });
 </script>
-{% endblock %}
 {% endblock %}

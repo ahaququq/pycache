@@ -46,13 +46,15 @@ COPY --chown=app:app nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --chown=app:app nginx/conf.d/cache.conf /etc/nginx/conf.d/cache.conf
 
 # Create cache and data directories
-RUN mkdir -p /app/cache /app/data /app/modules && chown -R app:app /app/cache /app/data /app/modules
+RUN mkdir -p /app/cache /app/data && chown -R app:app /app/cache /app/data
 
 # Nginx dirs
 RUN mkdir -p /var/cache/nginx /var/log/nginx && chown -R app:app /var/cache/nginx /var/log/nginx
+RUN mkdir -p /var/lib/nginx/body /home/app/.gunicorn && chown -R app:app /var/lib/nginx/body /home/app/.gunicorn
+RUN mkdir -p /var/lib/nginx/fastcgi /var/lib/nginx/proxy && chown -R app:app /var/lib/nginx
+RUN mkdir -p /var/lib/nginx/proxy && chown -R app:app /var/lib/nginx/proxy
 
 # Switch to non-root
-USER app
 
 # Expose HTTP
 EXPOSE 80

@@ -23,8 +23,15 @@ class DbSourceModule(ModuleBase):
     name = "db"
     display_name = "Database mappings"
 
+    def _get_config_dict(self) -> dict:
+        """Safely get config as dict, handling dataclass Field."""
+        try:
+            return dict(self.config)
+        except (TypeError, ValueError):
+            return {}
+
     def _source_id(self) -> Optional[int]:
-        return self.config.get("source_id")
+        return self._get_config_dict().get("source_id")
 
     def _mappings(self) -> list[dict]:
         sid = self._source_id()
