@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Sources - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> Sources
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+    <h2>Sources</h2>
+    <a class="btn btn-primary" href="{{ url_for('admin.new_source') }}">+ New Source</a>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Kind</th>
+                <th>Enabled</th>
+                <th>Config</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for s in sources %}
+            <tr>
+                <td class="mono">{{ s.id }}</td>
+                <td>{{ s.name }}</td>
+                <td><code>{{ s.kind }}</code></td>
+                <td>{{ 'Yes' if s.enabled else 'No' }}</td>
+                <td class="mono muted">{{ s.config }}</td>
+                <td class="actions">
+                    <a class="btn" href="{{ url_for('admin.edit_source', source_id=s.id) }}">Edit</a>
+                    {% if s.kind == 'db' %}
+                        <a class="btn" href="{{ url_for('admin.source_mappings', source_id=s.id) }}">Mappings</a>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('admin.delete_source', source_id=s.id) }}" style="display:inline;" onsubmit="return confirm('Delete this source?')">
+                        <button class="btn btn-danger" type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

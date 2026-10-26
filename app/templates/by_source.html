@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}By Source - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('public.index') }}">Info</a>
+    <span class="sep">/</span> By Source
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:1rem;">
+    <h2>Sources</h2>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Kind</th>
+                <th>Total Files</th>
+                <th>Cached</th>
+                <th>Upstream Only</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+            <tr>
+                <td>{{ r.name }}</td>
+                <td><code>{{ r.kind }}</code></td>
+                <td class="mono">{{ r.total or 0 }}</td>
+                <td class="mono"><span class="badge badge-cached">{{ r.cached or 0 }}</span></td>
+                <td class="mono"><span class="badge badge-upstream">{{ r.upstream_only or 0 }}</span></td>
+                <td class="actions">
+                    <a class="btn" href="{{ url_for('public.by_source_detail', source_id=r.id) }}">Details</a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

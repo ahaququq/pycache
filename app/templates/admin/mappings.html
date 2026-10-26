@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}{{ source.name }} Mappings - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> <a href="{{ url_for('admin.list_sources') }}">Sources</a>
+    <span class="sep">/</span> {{ source.name }}
+    <span class="sep">/</span> Mappings
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+    <h2>Mappings for {{ source.name }}</h2>
+    <a class="btn btn-primary" href="{{ url_for('admin.new_mapping', source_id=source.id) }}">+ New Mapping</a>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Local Path</th>
+                <th>Remote URL</th>
+                <th>Enabled</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for m in mappings %}
+            <tr>
+                <td class="path mono">{{ m.local_path }}</td>
+                <td class="muted mono">{{ m.remote_url }}</td>
+                <td>{{ 'Yes' if m.enabled else 'No' }}</td>
+                <td class="actions">
+                    <form method="post" action="{{ url_for('admin.delete_mapping', source_id=source.id, mapping_id=m.id) }}" style="display:inline;" onsubmit="return confirm('Delete this mapping?')">
+                        <button class="btn btn-danger" type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top:1rem;">
+    <a class="btn" href="{{ url_for('admin.list_sources') }}">← Back to Sources</a>
+</div>
+{% endblock %}

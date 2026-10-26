@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'New' if not name else 'Edit' }} Module - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> <a href="{{ url_for('admin.list_modules') }}">Modules</a>
+    <span class="sep">/</span> {{ 'New' if not name else 'Edit' }}
+{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/editor/editor.main.css">
+<style>
+    #editor { height: 500px; width: 100%; border: 1px solid var(--border); border-radius: 4px; }
+    .editor-toolbar { margin-bottom: .5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:100%;">
+    <h2>{{ 'New Module' if not name else 'Edit Module: ' ~ name }}</h2>
+    <form method="post" id="module-form">
+        {% if not name %}
+        <div class="form-group">
+            <label>Module Name <span class="muted">(valid Python identifier)</span></label>
+            <input type="text" name="name" value="" required placeholder="my_module">
+        </div>
+        {% else %}
+        <input type="hidden" name="name" value="{{ name }}">
+        {% endif %}
+
+        <div class="editor-toolbar">
+            <span class="muted">Write a class inheriting from <code>ModuleBase</code> with <code>list_items()</code> and <code>resolve()</code>.</span>
+        </div>
+        <div id="editor"></div>
+        <textarea name="content" id="content-hidden" style="display:none;"></textarea>
+
+        <div style="display:flex; gap:.5rem; margin-top:1rem;">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a class="btn" href="{{ url_for('admin.list_modules') }}">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js"></script>
+<script>
+require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs' }});
+require(['vs/editor/editor.main'], function() {
+    var editor = monaco.editor.create(document.getElementById('editor'), {
+        value: {{ content|tojson }},
+        language: 'python',
+        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'vs-dark' : 'vs',
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 13,
+        lineNumbers: 'on',
+    });
+    // Sync back to hidden textarea on submit
+    document.getElementById('module-form').addEventListener('submit', function() {
+        document.getElementById('content-hidden').value = editor.getValue();
+    });
+    // Update theme when system theme changes
+    var observer = new MutationObserver(function() {
+        var theme = document.documentElement.getAttribute('data-theme');
+        monaco.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+});
+</script>
+{% endblock %}
+{% endblock %}

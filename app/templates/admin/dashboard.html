@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> Admin
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="label">Cache Used</div>
+        <div class="value">{{ cache.total_bytes | human_bytes }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Cache Limit</div>
+        <div class="value">{{ cache.max_bytes | human_bytes }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Cached Files</div>
+        <div class="value">{{ cache.file_count }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Disk Free</div>
+        <div class="value">{{ cache.free_bytes | human_bytes }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Modules</h2>
+    {% if modules %}
+        <div class="module-list">
+            {% for name, m in modules.items() %}
+                <div class="module-item">
+                    <div class="meta">
+                        <span class="name">{{ m.display_name }} <code class="muted">({{ name }})</code></span>
+                        <span class="desc">
+                            {% if m.healthy %}
+                                <span class="status-healthy">● Healthy</span>
+                            {% elif m.enabled %}
+                                <span class="status-unhealthy">● {{ m.error or 'Error' }}</span>
+                            {% else %}
+                                <span class="status-disabled">● Disabled</span>
+                            {% endif %}
+                            — {{ m.items }} files
+                        </span>
+                    </div>
+                    <div class="actions">
+                        <a class="btn" href="{{ url_for('admin.view_module', name=name) }}">View</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="muted">No modules loaded.</p>
+    {% endif %}
+    <div style="margin-top:1rem; display:flex; gap:.5rem;">
+        <a class="btn btn-primary" href="{{ url_for('admin.new_module') }}">+ New Module</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Sources</h2>
+    {% if sources %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Kind</th>
+                        <th>Enabled</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for s in sources %}
+                    <tr>
+                        <td>{{ s.name }}</td>
+                        <td><code>{{ s.kind }}</code></td>
+                        <td>{{ 'Yes' if s.enabled else 'No' }}</td>
+                        <td class="actions">
+                            <a class="btn" href="{{ url_for('admin.edit_source', source_id=s.id) }}">Edit</a>
+                            {% if s.kind == 'db' %}
+                                <a class="btn" href="{{ url_for('admin.source_mappings', source_id=s.id) }}">Mappings</a>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('admin.delete_source', source_id=s.id) }}" style="display:inline;" onsubmit="return confirm('Delete this source?')">
+                                <button class="btn btn-danger" type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">No sources configured.</p>
+    {% endif %}
+    <div style="margin-top:1rem;">
+        <a class="btn btn-primary" href="{{ url_for('admin.new_source') }}">+ New Source</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Actions</h2>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+        <a class="btn" href="{{ url_for('admin.cache_panel') }}">Cache Settings</a>
+        <a class="btn" href="{{ url_for('public.by_path') }}">Browse By Path</a>
+        <a class="btn" href="{{ url_for('public.by_source') }}">Browse By Source</a>
+    </div>
+</div>
+{% endblock %}

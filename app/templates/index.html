@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Cache Server - Index{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> Home
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="label">Total Cached</div>
+        <div class="value">{{ cache_stats().total_bytes | human_bytes }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Cache Limit</div>
+        <div class="value">{{ cache_stats().max_bytes | human_bytes }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Files Cached</div>
+        <div class="value">{{ cache_stats().file_count }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Disk Free</div>
+        <div class="value">{{ cache_stats().free_bytes | human_bytes }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Links</h2>
+    <ul style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.5rem; list-style:none;">
+        <li><a href="{{ url_for('public.by_path') }}">📁 By Path</a> — all files grouped by path</li>
+        <li><a href="{{ url_for('public.by_source') }}">📦 By Source</a> — files grouped by source</li>
+        <li><a href="{{ url_for('admin.dashboard') }}">⚙️ Admin Dashboard</a> — manage sources, modules, cache</li>
+        <li><a href="{{ url_for('public.health') }}">💚 Health</a> — JSON health endpoint</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>Usage</h2>
+    <p>Configure your build tool to use this cache as a proxy.</p>
+    <h3>Gradle</h3>
+    <pre><code>gradle.user.home=/path/to/this/cache/gradle</code></pre>
+    <p>Or set <code>GRADLE_USER_HOME</code> environment variable.</p>
+    <h3>Generic HTTP</h3>
+    <pre><code>GET http://cache-host/cache/gradle/8.5/gradle-8.5-bin.zip</code></pre>
+    <p>If the file is cached, it's served instantly. If not, it's fetched from upstream, cached, then served.</p>
+</div>
+{% endblock %}

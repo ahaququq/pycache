@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Module: {{ name }} - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> <a href="{{ url_for('admin.list_modules') }}">Modules</a>
+    <span class="sep">/</span> {{ name }}
+{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem;">
+    <h2>{{ name }} <span class="muted">({{ status.display_name if status else 'unknown' }})</span></h2>
+    <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('admin.edit_module', name=name) }}">Edit</a>
+        <form method="post" action="{{ url_for('admin.reload_module', name=name) }}" style="display:inline;">
+            <button class="btn btn-outline" type="submit">Reload</button>
+        </form>
+    </div>
+</div>
+
+{% if status %}
+<div class="card" style="margin-bottom:1rem;">
+    <h3>Status</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.5rem;">
+        <div><strong>Healthy:</strong> {% if status.healthy %}<span class="status-healthy">Yes</span>{% else %}<span class="status-unhealthy">No</span>{% endif %}</div>
+        <div><strong>Enabled:</strong> {% if status.enabled %}Yes{% else %}No{% endif %}</div>
+        <div><strong>Items:</strong> {{ status.items }}</div>
+        <div><strong>Last checked:</strong> {{ status.last_checked }}</div>
+        {% if status.error %}
+            <div style="grid-column:1/-1;"><strong>Error:</strong> <span class="status-unhealthy">{{ status.error }}</span></div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h3>Source Code</h3>
+    <pre><code>{{ content }}</code></pre>
+</div>
+{% endblock %}
