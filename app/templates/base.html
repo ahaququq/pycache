@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Cache Server{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-    <script>
+    <script nonce="{{ csp_nonce }}">
     // Apply theme immediately to avoid flash
     (function() {
         var theme = localStorage.getItem('theme') || 'auto';
@@ -54,7 +54,7 @@
         <span class="cache-status">Cache: {{ cache_stats().total_bytes | human_bytes }}</span>
     </footer>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" nonce="{{ csp_nonce }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
