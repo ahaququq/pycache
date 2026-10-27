@@ -94,7 +94,14 @@ def root():
 
 @public.route("/info")
 def index():
-    return render_template("index.html")
+    # Calculate total available upstream files
+    total_upstream = 0
+    for sid, inst in sources.instances().items():
+        try:
+            total_upstream += len(inst.list_items() or [])
+        except Exception:
+            pass
+    return render_template("index.html", total_upstream=total_upstream)
 
 
 @public.route("/info/by-path")

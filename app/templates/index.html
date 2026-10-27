@@ -24,6 +24,10 @@
         <div class="label">Disk Free</div>
         <div class="value">{{ cache_stats().free_bytes | human_bytes }}</div>
     </div>
+    <div class="stat-card">
+        <div class="label">Total Upstream</div>
+        <div class="value">{{ total_upstream }}</div>
+    </div>
 </div>
 
 <div class="card">
