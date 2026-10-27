@@ -8,7 +8,7 @@ import logging
 import os
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, g
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 __version__ = "1.0.0"
@@ -56,6 +56,33 @@ def create_app() -> Flask:
     # We trust the proxy since it's the same container, but Nginx should
     # pass 'X-Forwarded-Proto' etc.
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Generate CSP nonce for each request
+    @app.before_request
+    def generate_csp_nonce():
+        import secrets
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    # Add CSP nonce to all templates
+    @app.context_processor
+    def inject_csp_nonce():
+        return dict(csp_nonce=getattr(g, 'csp_nonce', ''))
+
+    # Add CSP header with nonce
+    @app.after_request
+    def add_csp_header(response):
+        nonce = getattr(g, 'csp_nonce', '')
+        if nonce:
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-eval' 'nonce-" + nonce + "' https://cdn.jsdelivr.net blob:; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "font-src 'self' data: https://cdn.jsdelivr.net; "
+                "connect-src 'self'; "
+                "worker-src 'self' blob:;"
+            )
+            response.headers['Content-Security-Policy'] = csp
+        return response
 
     # Register blueprints
     from .routes.public import public
