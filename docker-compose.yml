@@ -8,11 +8,11 @@ services:
       - "80:80"
     environment:
       CACHE_MAX_BYTES: 16G
-      DATA_DIR: /app/data
-      MODULES_DIR: /app/modules
+      DATA_DIR: /app/app/data
+      MODULES_DIR: /app/app/modules
     volumes:
-      - cache-data:/app/cache
-      - app-data:/app/data
+      - cache-data:/app/app/cache
+      - app-data:/app/app/data
       - ./nginx/conf.d/cache.conf:/etc/nginx/conf.d/cache.conf:ro
 
 volumes:

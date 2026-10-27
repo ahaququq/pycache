@@ -46,7 +46,7 @@ COPY --chown=app:app nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --chown=app:app nginx/conf.d/cache.conf /etc/nginx/conf.d/cache.conf
 
 # Create cache and data directories
-RUN mkdir -p /app/cache /app/data && chown -R app:app /app/cache /app/data
+RUN mkdir -p /app/app/cache /app/app/data && chown -R app:app /app/app/cache /app/app/data
 
 # Nginx dirs
 RUN mkdir -p /var/cache/nginx /var/log/nginx && chown -R app:app /var/cache/nginx /var/log/nginx
