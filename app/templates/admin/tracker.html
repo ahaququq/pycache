@@ -1,0 +1,664 @@
+{% extends "base.html" %}
+
+{% block title %}Live Tracker - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> Live Tracker
+{% endblock %}
+
+{% block head %}
+<style>
+    .tracker-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1rem;
+    }
+    @media (max-width: 1000px) {
+        .tracker-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Progress bars section */
+    .progress-section {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    .progress-section h3 {
+        margin-top: 0;
+        font-size: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .progress-count {
+        font-size: 0.8rem;
+        color: var(--muted);
+    }
+    
+    .progress-bars {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--bg);
+    }
+    
+    .progress-bar-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        animation: slideIn 0.3s ease;
+    }
+    .progress-bar-item:last-child {
+        border-bottom: none;
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.25rem;
+        font-size: 0.85rem;
+    }
+    .progress-path {
+        font-family: monospace;
+        font-size: 0.8rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 70%;
+    }
+    .progress-stats {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--muted);
+    }
+    
+    .progress-bar-bg {
+        height: 8px;
+        background: var(--bg);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        background: linear-gradient(90deg, var(--accent), #3b82f6);
+    }
+    .progress-bar-fill.complete {
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+    .progress-bar-fill.error {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+    
+    .progress-percent {
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.65rem;
+        color: white;
+        text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        pointer-events: none;
+    }
+    .progress-speed {
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+    
+    /* Events log section */
+    .events-section {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .events-section h3 {
+        margin-top: 0;
+        font-size: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .events-controls {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+    }
+    .events-controls select, .events-controls input {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 0.8rem;
+    }
+    
+    .events-log {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--bg);
+        font-family: monospace;
+        font-size: 0.75rem;
+        line-height: 1.5;
+    }
+    .event-line {
+        padding: 0.25rem 0.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 0.5rem;
+    }
+    .event-line:last-child {
+        border-bottom: none;
+    }
+    .event-time { color: var(--muted); white-space: nowrap; }
+    .event-type { 
+        padding: 0 0.25rem;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .type-download_start { background: #3b82f6; color: white; }
+    .type-download_redirect { background: #f59e0b; color: white; }
+    .type-download_progress { background: #3b82f6; color: white; }
+    .type-download_complete { background: #22c55e; color: white; }
+    .type-download_error { background: #ef4444; color: white; }
+    .type-serve_start { background: #8b5cf6; color: white; }
+    .type-serve_complete { background: #22c55e; color: white; }
+    .type-serve_error { background: #ef4444; color: white; }
+    .type-probe_start { background: #06b6d4; color: white; }
+    .type-probe_complete { background: #06b6d4; color: white; }
+    .event-message { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .event-details { color: var(--muted); font-size: 0.7rem; }
+    
+    /* Stats row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .stat-box {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.75rem;
+        text-align: center;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--accent);
+    }
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+    
+    .connection-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+    }
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+    }
+    .status-dot.disconnected {
+        background: #ef4444;
+    }
+    .status-dot.connecting {
+        background: #f59e0b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Live Tracker</h2>
+    <p class="muted">Real-time monitoring of downloads, serves, and probes.</p>
+    
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="stat-value" id="stat-downloads">0</div>
+            <div class="stat-label">Active Downloads</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-serves">0</div>
+            <div class="stat-label">Active Serves</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">Total Events (session)</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-errors">0</div>
+            <div class="stat-label">Errors</div>
+        </div>
+        <div class="stat-box">
+            <div class="connection-status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Connecting...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tracker-container">
+        <!-- Progress Bars Section -->
+        <div class="progress-section">
+            <h3>
+                Active Transfers
+                <span class="progress-count" id="progress-count">0 / 5 shown</span>
+            </h3>
+            <div class="progress-bars" id="progress-bars">
+                <div class="muted" style="padding: 1rem; text-align: center;">No active transfers</div>
+            </div>
+        </div>
+
+        <!-- Events Log Section -->
+        <div class="events-section">
+            <h3>Event Log</h3>
+            <div class="events-controls">
+                <select id="filter-type">
+                    <option value="">All Types</option>
+                    <option value="download_start">Download Start</option>
+                    <option value="download_redirect">Redirect</option>
+                    <option value="download_progress">Download Progress</option>
+                    <option value="download_complete">Download Complete</option>
+                    <option value="download_error">Download Error</option>
+                    <option value="serve_start">Serve Start</option>
+                    <option value="serve_complete">Serve Complete</option>
+                    <option value="serve_error">Serve Error</option>
+                    <option value="probe_start">Probe Start</option>
+                    <option value="probe_complete">Probe Complete</option>
+                </select>
+                <input type="text" id="filter-text" placeholder="Filter by path/message..." style="flex: 1; min-width: 150px;">
+                <button class="btn btn-sm" onclick="clearEvents()">Clear View</button>
+            </div>
+            <div class="events-log" id="events-log">
+                <div class="muted" style="padding: 1rem; text-align: center;">Loading events...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+// Tracker state
+let eventSource = null;
+let progressBars = new Map(); // local_path -> {element, data}
+let eventCount = 0;
+const MAX_PROGRESS_BARS = 5;
+const progressOrder = []; // For scrolling order
+
+// Event type colors
+const typeColors = {
+    'download_start': '#3b82f6',
+    'download_redirect': '#f59e0b',
+    'download_progress': '#3b82f6',
+    'download_complete': '#22c55e',
+    'download_error': '#ef4444',
+    'serve_start': '#8b5cf6',
+    'serve_complete': '#22c55e',
+    'serve_error': '#ef4444',
+    'probe_start': '#06b6d4',
+    'probe_complete': '#06b6d4',
+};
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function formatSpeed(bps) {
+    return formatBytes(bps) + '/s';
+}
+
+function updateStats() {
+    fetch('/api/tracker/stats')
+        .then(r => r.json())
+        .then(data => {
+            const downloads = (data.download_start || 0) + (data.download_progress || 0);
+            const completes = data.download_complete || 0;
+            const errors = (data.download_error || 0) + (data.serve_error || 0);
+            const serves = (data.serve_start || 0) + (data.serve_complete || 0);
+            
+            document.getElementById('stat-downloads').textContent = downloads - completes;
+            document.getElementById('stat-serves').textContent = serves;
+            document.getElementById('stat-total').textContent = eventCount;
+            document.getElementById('stat-errors').textContent = errors;
+        })
+        .catch(() => {});
+}
+
+// Create progress bar element
+function createProgressBar(event) {
+    const details = event.details || {};
+    const item = document.createElement('div');
+    item.className = 'progress-bar-item';
+    item.dataset.path = details.local_path || '';
+    
+    const progress = details.progress_pct || 0;
+    const isError = event.event_type === 'download_error' || event.event_type === 'serve_error';
+    const isComplete = event.event_type === 'download_complete' || event.event_type === 'serve_complete';
+    
+    item.innerHTML = `
+        <div class="progress-header">
+            <span class="progress-path" title="${details.local_path || ''}">${details.local_path || 'Unknown path'}</span>
+            <span class="progress-stats">
+                <span>${formatBytes(details.bytes_downloaded || details.bytes_sent || 0)}</span>
+                <span>${details.total_bytes ? '/' + formatBytes(details.total_bytes) : ''}</span>
+            </span>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill ${isComplete ? 'complete' : ''} ${isError ? 'error' : ''}" 
+                 style="width: ${progress}%;" 
+                 data-speed="${details.speed_bps || 0}">
+                <span class="progress-percent">${progress.toFixed(1)}%</span>
+            </div>
+        </div>
+        <div class="progress-speed">
+            ${details.speed_bps ? formatSpeed(details.speed_bps) : 'Starting...'}
+            ${details.duration_s ? ' • ' + details.duration_s.toFixed(1) + 's' : ''}
+            ${details.from_cache !== undefined ? ' • ' + (details.from_cache ? 'from cache' : 'from upstream') : ''}
+        </div>
+    `;
+    
+    return item;
+}
+
+function updateProgressBar(item, event) {
+    const details = event.details || {};
+    const progress = details.progress_pct || 0;
+    const isError = event.event_type === 'download_error' || event.event_type === 'serve_error';
+    const isComplete = event.event_type === 'download_complete' || event.event_type === 'serve_complete';
+    
+    const fill = item.querySelector('.progress-bar-fill');
+    if (fill) {
+        fill.style.width = progress + '%';
+        fill.textContent = progress.toFixed(1) + '%';
+        fill.className = 'progress-bar-fill' + (isComplete ? ' complete' : '') + (isError ? ' error' : '');
+    }
+    
+    const stats = item.querySelector('.progress-stats');
+    if (stats) {
+        const bytes = details.bytes_downloaded || details.bytes_sent || 0;
+        const total = details.total_bytes;
+        stats.innerHTML = `<span>${formatBytes(bytes)}</span>${total ? '<span> / ' + formatBytes(total) + '</span>' : ''}`;
+    }
+    
+    const speedEl = item.querySelector('.progress-speed');
+    if (speedEl) {
+        const speed = details.speed_bps || 0;
+        let html = speed ? formatSpeed(speed) : 'Starting...';
+        if (details.duration_s) html += ' • ' + details.duration_s.toFixed(1) + 's';
+        if (details.from_cache !== undefined) html += ' • ' + (details.from_cache ? 'from cache' : 'from upstream');
+        speedEl.innerHTML = html;
+    }
+    
+    // Update path if changed
+    const pathEl = item.querySelector('.progress-path');
+    if (pathEl && details.local_path) {
+        pathEl.textContent = details.local_path;
+        pathEl.title = details.local_path;
+    }
+}
+
+function addOrUpdateProgressBar(event) {
+    const details = event.details || {};
+    const path = details.local_path || 'unknown';
+    
+    let item = progressBars.get(path);
+    
+    if (!item) {
+        // New progress bar
+        item = createProgressBar(event);
+        progressBars.set(path, item);
+        progressOrder.push(path);
+        
+        const container = document.getElementById('progress-bars');
+        // Remove "no active transfers" message
+        const emptyMsg = container.querySelector('.muted');
+        if (emptyMsg) emptyMsg.remove();
+        
+        // Add to top (newest first)
+        container.insertBefore(item, container.firstChild);
+        
+        // Limit to MAX_PROGRESS_BARS
+        while (progressOrder.length > MAX_PROGRESS_BARS) {
+            const oldPath = progressOrder.shift();
+            const oldItem = progressBars.get(oldPath);
+            if (oldItem) {
+                oldItem.remove();
+                progressBars.delete(oldPath);
+            }
+        }
+    } else {
+        // Update existing
+        updateProgressBar(item, event);
+        
+        // Move to top
+        const container = document.getElementById('progress-bars');
+        container.insertBefore(item, container.firstChild);
+        // Reorder progressOrder
+        const idx = progressOrder.indexOf(path);
+        if (idx > -1) {
+            progressOrder.splice(idx, 1);
+            progressOrder.unshift(path);
+        }
+    }
+    
+    // Update count
+    document.getElementById('progress-count').textContent = progressBars.size + ' / ' + MAX_PROGRESS_BARS + ' shown';
+    
+    // Remove completed/error bars after a delay
+    const isTerminal = event.event_type === 'download_complete' || 
+                       event.event_type === 'download_error' ||
+                       event.event_type === 'serve_complete' ||
+                       event.event_type === 'serve_error';
+    
+    if (isTerminal) {
+        setTimeout(() => {
+            const item = progressBars.get(path);
+            if (item) {
+                item.style.opacity = '0';
+                item.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    item.remove();
+                    progressBars.delete(path);
+                    const idx = progressOrder.indexOf(path);
+                    if (idx > -1) progressOrder.splice(idx, 1);
+                    document.getElementById('progress-count').textContent = progressBars.size + ' / ' + MAX_PROGRESS_BARS + ' shown';
+                    
+                    // Show empty message if no bars
+                    const container = document.getElementById('progress-bars');
+                    if (progressBars.size === 0) {
+                        container.innerHTML = '<div class="muted" style="padding: 1rem; text-align: center;">No active transfers</div>';
+                    }
+                }, 500);
+            }
+        }, 5000); // Keep for 5 seconds after completion
+    }
+}
+
+function addEventToLog(event) {
+    const filterType = document.getElementById('filter-type').value;
+    const filterText = document.getElementById('filter-text').value.toLowerCase();
+    
+    // Apply filters
+    if (filterType && event.event_type !== filterType) return;
+    if (filterText && !event.message.toLowerCase().includes(filterText) && 
+        !JSON.stringify(event.details).toLowerCase().includes(filterText)) return;
+    
+    const container = document.getElementById('events-log');
+    const emptyMsg = container.querySelector('.muted');
+    if (emptyMsg) emptyMsg.remove();
+    
+    const line = document.createElement('div');
+    line.className = 'event-line';
+    
+    const time = new Date(event.timestamp).toLocaleTimeString();
+    const typeClass = 'type-' + event.event_type;
+    
+    line.innerHTML = `
+        <span class="event-time">${time}</span>
+        <span class="event-type ${typeClass}">${event.event_type}</span>
+        <span class="event-message">${event.message}</span>
+    `;
+    
+    // Add click to show details
+    line.style.cursor = 'pointer';
+    line.addEventListener('click', () => {
+        alert(JSON.stringify(event.details, null, 2));
+    });
+    
+    // Add to top
+    container.insertBefore(line, container.firstChild);
+    
+    // Limit log lines
+    const lines = container.querySelectorAll('.event-line');
+    if (lines.length > 200) {
+        lines[lines.length - 1].remove();
+    }
+}
+
+function clearEvents() {
+    const container = document.getElementById('events-log');
+    container.innerHTML = '<div class="muted" style="padding: 1rem; text-align: center;">Event log cleared</div>';
+}
+
+function updateStatus(connected) {
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    
+    if (connected) {
+        dot.classList.remove('disconnected', 'connecting');
+        text.textContent = 'Connected';
+    } else {
+        dot.classList.add('disconnected');
+        text.textContent = 'Disconnected';
+    }
+}
+
+function connectSSE() {
+    updateStatus(false);
+    eventSource = new EventSource('/api/tracker/stream');
+    
+    eventSource.onopen = () => {
+        updateStatus(true);
+    };
+    
+    eventSource.onerror = () => {
+        updateStatus(false);
+        // Reconnect after 3 seconds
+        setTimeout(() => {
+            if (eventSource) eventSource.close();
+            connectSSE();
+        }, 3000);
+    };
+    
+    eventSource.onmessage = (e) => {
+        if (e.data.startsWith(':')) return; // Heartbeat
+        
+        try {
+            const event = JSON.parse(e.data);
+            eventCount++;
+            
+            // Check if it's a progress event
+            const progressTypes = ['download_start', 'download_redirect', 'download_progress', 'download_complete', 'download_error', 'serve_start', 'serve_complete', 'serve_error'];
+            if (progressTypes.includes(event.event_type)) {
+                addOrUpdateProgressBar(event);
+            }
+            
+            // Add to event log
+            addEventToLog(event);
+            
+            // Update stats periodically
+            if (eventCount % 10 === 0) {
+                updateStats();
+            }
+        } catch (err) {
+            console.error('Failed to parse SSE event:', err);
+        }
+    };
+}
+
+// Filter handlers
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('filter-type').addEventListener('change', () => {
+        // Re-render filtered events - for simplicity, we'll just reload
+        loadInitialEvents();
+    });
+    
+    let filterTimeout;
+    document.getElementById('filter-text').addEventListener('input', () => {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(() => {
+            loadInitialEvents();
+        }, 300);
+    });
+    
+    // Load initial events
+    loadInitialEvents();
+    
+    // Connect SSE
+    connectSSE();
+    
+    // Periodic stats update
+    setInterval(updateStats, 5000);
+});
+
+function loadInitialEvents() {
+    const filterType = document.getElementById('filter-type').value;
+    const filterText = document.getElementById('filter-text').value.toLowerCase();
+    
+    let url = '/api/tracker/events?limit=200';
+    if (filterType) url += '&type=' + filterType;
+    
+    fetch(url)
+        .then(r => r.json())
+        .then(events => {
+            // Reverse to show oldest first (they'll be added to top)
+            events.reverse().forEach(event => {
+                const progressTypes = ['download_start', 'download_redirect', 'download_progress', 'download_complete', 'download_error', 'serve_start', 'serve_complete', 'serve_error'];
+                if (progressTypes.includes(event.event_type)) {
+                    addOrUpdateProgressBar(event);
+                }
+                addEventToLog(event);
+            });
+            eventCount = events.length;
+            updateStats();
+        })
+        .catch(err => {
+            console.error('Failed to load initial events:', err);
+            const container = document.getElementById('events-log');
+            container.innerHTML = '<div class="muted" style="padding: 1rem; text-align: center;">Failed to load events</div>';
+        });
+}
+</script>
+{% endblock %}

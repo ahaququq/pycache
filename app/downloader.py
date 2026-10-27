@@ -19,12 +19,15 @@ import requests
 from . import cache as cache_mod
 from .config import MAX_REDIRECTS, UPSTREAM_TIMEOUT, UPSTREAM_USER_AGENT
 from .doh import get_doh_session
+from .tracker import get_tracker
 
 log = logging.getLogger("download")
 
 # Use DoH-enabled session for DNS resolution
 _SESSION = get_doh_session()
 _SESSION.headers["User-Agent"] = UPSTREAM_USER_AGENT
+
+_tracker = get_tracker()
 _SESSION.max_redirects = MAX_REDIRECTS
 # Allow the session to follow redirects ourselves so we can inspect each hop.
 _SESSION.allow_redirects = False
@@ -78,7 +81,7 @@ def head(url: str, timeout: Optional[int] = None) -> DownloadResult:
     return res
 
 
-def download(url: str, timeout: Optional[int] = None) -> DownloadResult:
+def download(url: str, timeout: Optional[int] = None, local_path: str = "", source_name: str = "") -> DownloadResult:
     """Download ``url``, following redirects, caching the final payload.
 
     Returns a DownloadResult. On success ``cached_path`` points at the cached
@@ -86,6 +89,14 @@ def download(url: str, timeout: Optional[int] = None) -> DownloadResult:
     """
     res = DownloadResult()
     current = url
+    start_time = time.time()
+    last_progress_time = start_time
+    last_progress_bytes = 0
+    
+    # Track download start
+    if local_path:
+        _tracker.download_start(local_path, url, source_name)
+    
     for _ in range(MAX_REDIRECTS + 1):
         try:
             resp = _SESSION.get(current, timeout=timeout or UPSTREAM_TIMEOUT, stream=True)
@@ -93,6 +104,8 @@ def download(url: str, timeout: Optional[int] = None) -> DownloadResult:
             res.ok = False
             res.error = str(exc)
             log.error("Download exception for %s: %s", current, exc)
+            if local_path:
+                _tracker.download_error(local_path, str(exc), current)
             return res
         res.status = resp.status_code
         res.final_url = resp.url
@@ -109,15 +122,22 @@ def download(url: str, timeout: Optional[int] = None) -> DownloadResult:
                 res.ok = False
                 res.error = "redirect without Location header"
                 log.warning("Redirect without Location header for %s", current)
+                if local_path:
+                    _tracker.download_error(local_path, "Redirect without Location header", current)
                 return res
+            old_url = current
             current = urljoin(current, location)
             log.debug("Redirect: %s -> %s", current, location)
+            if local_path:
+                _tracker.download_redirect(local_path, old_url, current)
             continue
         if resp.status_code >= 400:
             resp.close()
             res.ok = False
             res.error = f"upstream returned {resp.status_code}"
             log.warning("Upstream returned %s for %s", resp.status_code, current)
+            if local_path:
+                _tracker.download_error(local_path, f"Upstream returned {resp.status_code}", current)
             return res
         # Success: stream the body to a temp file then cache it atomically.
         try:
@@ -136,6 +156,14 @@ def download(url: str, timeout: Optional[int] = None) -> DownloadResult:
                     fh.write(chunk)
                     hasher.update(chunk)
                     total += len(chunk)
+                    
+                    # Progress tracking
+                    now = time.time()
+                    if now - last_progress_time >= 0.5 and local_path:  # Update every 500ms
+                        speed_bps = (total - last_progress_bytes) / (now - last_progress_time) if now > last_progress_time else 0
+                        _tracker.download_progress(local_path, total, res.content_length, speed_bps)
+                        last_progress_time = now
+                        last_progress_bytes = total
             resp.close()
             target = cache_mod.cache_path(current)
             os.replace(tmp_path, target)
@@ -144,12 +172,17 @@ def download(url: str, timeout: Optional[int] = None) -> DownloadResult:
             res.bytes_written = total
             res.ok = True
             res.content_length = total
+            duration = time.time() - start_time
             log.info("Downloaded %s (%d bytes) from %s", current, total, url)
+            if local_path:
+                _tracker.download_complete(local_path, total, duration, str(target), source_name)
             return res
         except OSError as exc:
             res.ok = False
             res.error = f"write failed: {exc}"
             log.error("Write failed for %s: %s", current, exc)
+            if local_path:
+                _tracker.download_error(local_path, str(exc), current)
             return res
         finally:
             try:
@@ -160,6 +193,8 @@ def download(url: str, timeout: Optional[int] = None) -> DownloadResult:
     res.ok = False
     res.error = "too many redirects"
     log.error("Too many redirects for %s", url)
+    if local_path:
+        _tracker.download_error(local_path, "Too many redirects", url)
     return res
 
 

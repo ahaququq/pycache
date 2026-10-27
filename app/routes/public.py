@@ -22,10 +22,13 @@ from ..config import CACHE_MAX_BYTES
 from ..downloader import download, head
 from ..db import db
 from ..sources import sources
+from ..tracker import get_tracker
 
 log = logging.getLogger("routes.public")
 
 public = Blueprint("public", __name__)
+
+_tracker = get_tracker()
 
 
 def _human(size: int) -> str:
@@ -48,14 +51,36 @@ def serve_cached(local_path: str) -> Response:
 
     source_id, mod, remote_url = res
     cached_p = cache_path(remote_url)
-
+    
+    # Get source name for tracking
+    source_row = db.fetchone("SELECT name FROM sources WHERE id=?", (source_id,))
+    source_name = source_row["name"] if source_row else f"source_{source_id}"
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    
     # If cached, stream it.
     if cached_p.is_file():
+        start_time = time.time()
         touch(remote_url)
-        return send_file(cached_p, as_attachment=True, download_name=Path(local_path).name)
+        
+        # Track serve start
+        _tracker.serve_start(local_path, remote_url, source_name, client_ip)
+        
+        try:
+            response = send_file(cached_p, as_attachment=True, download_name=Path(local_path).name)
+            # We can't easily get bytes sent from send_file, so we'll use file size
+            file_size = cached_p.stat().st_size
+            duration = time.time() - start_time
+            _tracker.serve_complete(local_path, file_size, duration, client_ip, from_cache=True)
+            return response
+        except Exception as exc:
+            duration = time.time() - start_time
+            _tracker.serve_error(local_path, str(exc), client_ip)
+            raise
 
     # Not cached: fetch from upstream, store, then stream.
-    result = download(remote_url)
+    _tracker.serve_start(local_path, remote_url, source_name, client_ip)
+    download_start = time.time()
+    result = download(remote_url, local_path=local_path, source_name=source_name)
     if not result.ok or result.cached_path is None:
         log.warning("download failed for %s: %s", remote_url, result.error)
         abort(502, f"upstream error: {result.error}")
@@ -82,7 +107,19 @@ def serve_cached(local_path: str) -> Response:
     except Exception as exc:  # noqa: BLE001
         log.warning("db update failed for %s: %r", local_path, exc)
 
-    return send_file(cached_p, as_attachment=True, download_name=Path(local_path).name)
+    # Serve the newly cached file
+    serve_start = time.time()
+    try:
+        response = send_file(cached_p, as_attachment=True, download_name=Path(local_path).name)
+        file_size = result.bytes_written
+        duration = time.time() - serve_start
+        total_duration = time.time() - download_start
+        _tracker.serve_complete(local_path, file_size, duration, client_ip, from_cache=False)
+        return response
+    except Exception as exc:
+        duration = time.time() - serve_start
+        _tracker.serve_error(local_path, str(exc), client_ip)
+        raise
 
 
 # ---------------------------------------------------------------------------
