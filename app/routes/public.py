@@ -99,39 +99,106 @@ def index():
 
 @public.route("/info/by-path")
 def by_path():
+    # Get all available items from enabled sources
+    all_items = []
+    for sid, inst in sources.instances().items():
+        try:
+            items = inst.list_items() or []
+        except Exception as exc:
+            log.warning("source %d listing failed: %r", sid, exc)
+            continue
+        for item in items:
+            all_items.append((sid, item))
+    
+    # Get cached/checked status from DB
+    cached_files = {}
     rows = db.fetchall(
         """
-        SELECT f.local_path, f.remote_url, f.cached, f.size, f.exists_upstream,
-               f.last_checked, s.name AS source_name, s.id AS source_id
+        SELECT f.local_path, f.cached, f.size, f.exists_upstream,
+               f.last_checked, f.remote_url
         FROM files f
         JOIN sources s ON s.id = f.source_id
         WHERE s.enabled=1
-        ORDER BY f.local_path
         """
     )
+    for row in rows:
+        cached_files[row["local_path"]] = row
+    
+    # Build combined rows: all available items + cache status
+    combined_rows = []
+    for sid, item in all_items:
+        source = db.fetchone("SELECT name FROM sources WHERE id=?", (sid,))
+        source_name = source["name"] if source else f"source_{sid}"
+        
+        cached = cached_files.get(item.local_path)
+        if cached:
+            cached_flag = cached["cached"]
+            size = cached["size"]
+            exists_upstream = cached["exists_upstream"]
+            last_checked = cached["last_checked"]
+            remote_url = cached["remote_url"]
+        else:
+            cached_flag = 0
+            size = item.size
+            exists_upstream = 1  # Available from source but not yet cached
+            last_checked = None
+            remote_url = item.remote_url
+        
+        combined_rows.append({
+            "local_path": item.local_path,
+            "remote_url": remote_url,
+            "cached": cached_flag,
+            "size": size,
+            "exists_upstream": exists_upstream,
+            "last_checked": last_checked,
+            "source_name": source_name,
+            "source_id": sid,
+        })
+    
+    # Sort by path
+    combined_rows.sort(key=lambda r: r["local_path"])
+    
     return render_template(
         "by_path.html",
-        rows=rows,
+        rows=combined_rows,
         human=_human,
     )
 
 
 @public.route("/info/by-source")
 def by_source():
-    # Get per-source stats
-    rows = db.fetchall(
-        """
-        SELECT s.id, s.name, s.kind,
-               COUNT(f.id) AS total,
-               SUM(CASE WHEN f.cached=1 THEN 1 ELSE 0 END) AS cached,
-               SUM(CASE WHEN f.exists_upstream=1 AND f.cached=0 THEN 1 ELSE 0 END) AS upstream_only
-        FROM sources s
-        LEFT JOIN files f ON f.source_id = s.id
-        WHERE s.enabled=1
-        GROUP BY s.id
-        ORDER BY s.name
-        """
+    # Get per-source stats including all available items
+    source_rows = db.fetchall(
+        "SELECT id, name, kind FROM sources WHERE enabled=1 ORDER BY name"
     )
+    
+    rows = []
+    for src in source_rows:
+        sid = src["id"]
+        inst = sources.instances().get(sid)
+        total_available = 0
+        if inst:
+            try:
+                total_available = len(inst.list_items() or [])
+            except Exception as exc:
+                pass
+        
+        # Get cached count from DB
+        cached_row = db.fetchone(
+            "SELECT COUNT(*) AS cached FROM files WHERE source_id=? AND cached=1",
+            (sid,),
+        )
+        cached = cached_row["cached"] if cached_row else 0
+        
+        rows.append({
+            "id": sid,
+            "name": src["name"],
+            "kind": src["kind"],
+            "total": total_available,
+            "cached": cached,
+            "upstream_only": total_available - cached,
+        })
+    
     return render_template(
         "by_source.html",
         rows=rows,
@@ -144,19 +211,68 @@ def by_source_detail(source_id: int):
     source = db.fetchone("SELECT * FROM sources WHERE id=?", (source_id,))
     if not source:
         abort(404)
+    
+    # Get all available items from this source
+    inst = sources.instances().get(source_id)
+    if not inst:
+        return render_template(
+            "by_source_detail.html",
+            source=source,
+            rows=[],
+            human=_human,
+        )
+    
+    try:
+        all_items = inst.list_items() or []
+    except Exception as exc:
+        log.warning("source %d listing failed: %r", source_id, exc)
+        all_items = []
+    
+    # Get cached/checked status from DB
+    cached_files = {}
     rows = db.fetchall(
         """
-        SELECT local_path, remote_url, cached, size, exists_upstream, last_checked
+        SELECT local_path, cached, size, exists_upstream, last_checked, remote_url
         FROM files
         WHERE source_id=?
-        ORDER BY local_path
         """,
         (source_id,),
     )
+    for row in rows:
+        cached_files[row["local_path"]] = row
+    
+    # Build combined rows
+    combined_rows = []
+    for item in all_items:
+        cached = cached_files.get(item.local_path)
+        if cached:
+            cached_flag = cached["cached"]
+            size = cached["size"]
+            exists_upstream = cached["exists_upstream"]
+            last_checked = cached["last_checked"]
+            remote_url = cached["remote_url"]
+        else:
+            cached_flag = 0
+            size = item.size
+            exists_upstream = 1  # Available from source but not yet cached
+            last_checked = None
+            remote_url = item.remote_url
+        
+        combined_rows.append({
+            "local_path": item.local_path,
+            "remote_url": remote_url,
+            "cached": cached_flag,
+            "size": size,
+            "exists_upstream": exists_upstream,
+            "last_checked": last_checked,
+        })
+    
+    combined_rows.sort(key=lambda r: r["local_path"])
+    
     return render_template(
         "by_source_detail.html",
         source=source,
-        rows=rows,
+        rows=combined_rows,
         human=_human,
     )
 
