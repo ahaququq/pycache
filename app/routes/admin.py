@@ -38,10 +38,13 @@ from ..config import CACHE_MAX_BYTES, MODULES_DIR
 from ..db import db
 from ..modules._loader import registry
 from ..sources import sources
+from ..tracker import get_tracker
 
 log = logging.getLogger("routes.admin")
 
 admin = Blueprint("admin", __name__)
+
+tracker = get_tracker()
 
 
 # ---------------------------------------------------------------------------
@@ -443,6 +446,15 @@ def clear_logs():
     db._conn().commit()
     flash("Log entries cleared.", "success")
     return redirect(url_for("admin.logs"))
+
+
+# ---------------------------------------------------------------------------
+# Live Tracker
+# ---------------------------------------------------------------------------
+@admin.route("/tracker")
+def tracker():
+    """Live tracker dashboard."""
+    return render_template("admin/tracker.html")
 
 
 # ---------------------------------------------------------------------------
