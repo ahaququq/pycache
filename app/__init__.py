@@ -40,6 +40,14 @@ def create_app() -> Flask:
     logging.basicConfig(level=getattr(logging, LOG_LEVEL.upper(), logging.INFO))
     app.logger.setLevel(getattr(logging, LOG_LEVEL.upper(), logging.INFO))
 
+    # Install database logging handler
+    from .log_handler import DBLogHandler
+    db_handler = DBLogHandler()
+    db_handler.setLevel(logging.INFO)  # Log INFO and above to DB
+    db_handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+    logging.getLogger().addHandler(db_handler)
+    app.logger.addHandler(db_handler)
+
     # Init DB + module directory.
     db.init()
     MODULES_DIR.mkdir(parents=True, exist_ok=True)

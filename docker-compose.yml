@@ -10,6 +10,9 @@ services:
       CACHE_MAX_BYTES: 16G
       DATA_DIR: /app/app/data
       MODULES_DIR: /app/app/modules
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     volumes:
       - cache-data:/app/app/cache
       - app-data:/app/app/data

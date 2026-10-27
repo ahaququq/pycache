@@ -69,6 +69,19 @@ CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS log_entries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp   TEXT NOT NULL DEFAULT (datetime('now')),
+    level       TEXT NOT NULL,          -- DEBUG, INFO, WARNING, ERROR, CRITICAL
+    module      TEXT NOT NULL,          -- source module name
+    message     TEXT NOT NULL,
+    details     TEXT                    -- optional JSON with extra context
+);
+
+CREATE INDEX IF NOT EXISTS idx_log_timestamp ON log_entries(timestamp);
+CREATE INDEX IF NOT EXISTS idx_log_level ON log_entries(level);
+CREATE INDEX IF NOT EXISTS idx_log_module ON log_entries(module);
 """
 
 

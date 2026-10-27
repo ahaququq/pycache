@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Cache Server{% endblock %}
+
+{% block breadcrumb %}
+    <span class="sep">/</span> <a href="{{ url_for('admin.dashboard') }}">Admin</a>
+    <span class="sep">/</span> Logs
+{% endblock %}
+
+{% block head %}
+<style>
+    .log-table { width: 100%; border-collapse: collapse; }
+    .log-table th, .log-table td { padding: .5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .log-table th { background: var(--bg-secondary); }
+    .log-table tr:hover { background: var(--bg-tertiary); }
+    .level-DEBUG { color: var(--muted); }
+    .level-INFO { color: var(--accent); }
+    .level-WARNING { color: #f59e0b; }
+    .level-ERROR { color: #ef4444; }
+    .level-CRITICAL { color: #dc2626; font-weight: bold; }
+    .log-message { font-family: monospace; font-size: .85rem; max-width: 600px; overflow-wrap: break-word; }
+    .log-details { font-family: monospace; font-size: .75rem; color: var(--muted); }
+    .filter-form { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: end; }
+    .filter-form .form-group { margin: 0; }
+    .pagination { display: flex; gap: .25rem; justify-content: center; margin-top: 1rem; }
+    .pagination a, .pagination span { padding: .25rem .5rem; border: 1px solid var(--border); border-radius: 4px; text-decoration: none; }
+    .pagination .current { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .log-actions { display: flex; gap: .5rem; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>System Logs</h2>
+    <p class="muted">Showing WARNING level and above. Logs are stored in SQLite database.</p>
+    
+    <div class="log-actions">
+        <form method="post" action="{{ url_for('admin.clear_logs') }}" style="display:inline;">
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Clear all log entries?')">Clear All Logs</button>
+        </form>
+        <a class="btn" href="{{ url_for('admin.logs') }}">Refresh</a>
+    </div>
+
+    <form method="get" class="filter-form">
+        <div class="form-group">
+            <label>Level</label>
+            <select name="level">
+                <option value="">All Levels</option>
+                {% for l in levels %}
+                    <option value="{{ l }}" {% if l == current_level %}selected{% endif %}>{{ l }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Module</label>
+            <select name="module">
+                <option value="">All Modules</option>
+                {% for m in modules %}
+                    <option value="{{ m }}" {% if m == current_module %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="{{ url_for('admin.logs') }}" class="btn">Reset</a>
+    </form>
+
+    {% if logs %}
+        <div class="table-wrap">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Level</th>
+                        <th>Module</th>
+                        <th>Message</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for log in logs %}
+                    <tr>
+                        <td class="mono">{{ log.timestamp }}</td>
+                        <td><span class="level-{{ log.level }}">{{ log.level }}</span></td>
+                        <td class="mono">{{ log.module }}</td>
+                        <td class="log-message">{{ log.message }}</td>
+                        <td>
+                            {% if log.details %}
+                                <button class="btn btn-outline btn-sm" onclick="alert('{{ log.details | tojson | escape }}')">View</button>
+                            {% else %}
+                                <span class="muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+                <a href="{{ url_for('admin.logs', page=page-1, level=current_level, module=current_module) }}">« Prev</a>
+            {% endif %}
+            <span class="current">Page {{ page }} / {{ total_pages }}</span>
+            {% if page < total_pages %}
+                <a href="{{ url_for('admin.logs', page=page+1, level=current_level, module=current_module) }}">Next »</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <p class="muted">No log entries found.</p>
+    {% endif %}
+</div>
+{% endblock %}

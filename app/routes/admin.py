@@ -384,6 +384,68 @@ def reload_module(name: str):
 
 
 # ---------------------------------------------------------------------------
+# Log viewer
+# ---------------------------------------------------------------------------
+@admin.route("/logs")
+def logs():
+    """View recent log entries."""
+    page = request.args.get("page", 1, type=int)
+    per_page = 100
+    offset = (page - 1) * per_page
+    
+    level_filter = request.args.get("level", "")
+    module_filter = request.args.get("module", "")
+    
+    where_clauses = []
+    params = []
+    
+    if level_filter:
+        where_clauses.append("level = ?")
+        params.append(level_filter)
+    if module_filter:
+        where_clauses.append("module = ?")
+        params.append(module_filter)
+    
+    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+    
+    # Get total count
+    total_row = db.fetchone(f"SELECT COUNT(*) as count FROM log_entries {where_sql}", tuple(params))
+    total = total_row["count"] if total_row else 0
+    
+    # Get log entries
+    rows = db.fetchall(
+        f"SELECT * FROM log_entries {where_sql} ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+        tuple(params + [per_page, offset]),
+    )
+    
+    # Get available levels and modules for filters
+    levels = [r["level"] for r in db.fetchall("SELECT DISTINCT level FROM log_entries ORDER BY level")]
+    modules = [r["module"] for r in db.fetchall("SELECT DISTINCT module FROM log_entries ORDER BY module")]
+    
+    return render_template(
+        "admin/logs.html",
+        logs=rows,
+        levels=levels,
+        modules=modules,
+        current_level=level_filter,
+        current_module=module_filter,
+        page=page,
+        per_page=per_page,
+        total=total,
+        total_pages=(total + per_page - 1) // per_page,
+    )
+
+
+@admin.route("/logs/clear", methods=["POST"])
+def clear_logs():
+    """Clear all log entries."""
+    db.execute("DELETE FROM log_entries")
+    db._conn().commit()
+    flash("Log entries cleared.", "success")
+    return redirect(url_for("admin.logs"))
+
+
+# ---------------------------------------------------------------------------
 # Cache control
 # ---------------------------------------------------------------------------
 @admin.route("/cache")
