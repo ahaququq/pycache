@@ -42,10 +42,49 @@
         setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .5s'; setTimeout(() => el.remove(), 500); }, 5000);
     });
 
-    // Confirm on delete buttons
-    document.querySelectorAll('form[action*="/delete"]').forEach(form => {
+    // Confirm on delete/purge forms
+    document.querySelectorAll('form[data-confirm]').forEach(form => {
         form.addEventListener('submit', e => {
-            if (!confirm('Are you sure?')) e.preventDefault();
+            if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+        });
+    });
+
+    // Download and probe buttons
+    document.querySelectorAll('button[data-action="download"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const path = btn.getAttribute('data-path');
+            const url = btn.getAttribute('data-url') || '{{ url_for("api.api_download") }}';
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({local_path: path})
+            }).then(r => r.json()).then(d => {
+                if (d.ok) {
+                    alert('Downloaded ' + d.bytes + ' bytes');
+                    location.reload();
+                } else {
+                    alert('Failed: ' + d.error);
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('button[data-action="probe"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const path = btn.getAttribute('data-path');
+            const url = btn.getAttribute('data-url') || '{{ url_for("api.probe") }}';
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({local_path: path})
+            }).then(r => r.json()).then(d => {
+                let msg = 'Status: ' + d.status + '\\n';
+                msg += 'Exists: ' + d.exists + '\\n';
+                msg += 'Size: ' + (d.size ? d.size + ' bytes' : 'unknown') + '\\n';
+                msg += 'Final URL: ' + d.final_url;
+                if (d.error) msg += '\\nError: ' + d.error;
+                alert(msg);
+            });
         });
     });
 

@@ -48,11 +48,11 @@
                 <td class="muted">{{ r.last_checked or '—' }}</td>
                 <td class="actions">
                     {% if not r.cached %}
-                        <button class="btn btn-primary" onclick="download('{{ r.local_path|e }}')">Download</button>
+                        <button class="btn btn-primary" data-action="download" data-path="{{ r.local_path }}" data-url="{{ url_for('api.api_download') }}">Download</button>
                     {% else %}
                         <a class="btn" href="{{ url_for('public.serve_cached', local_path=r.local_path) }}">Serve</a>
                     {% endif %}
-                    <button class="btn btn-outline" onclick="probe('{{ r.local_path|e }}')">Probe</button>
+                    <button class="btn btn-outline" data-action="probe" data-path="{{ r.local_path }}" data-url="{{ url_for('api.probe') }}">Probe</button>
                 </td>
             </tr>
         {% endfor %}
@@ -60,7 +60,7 @@
     </table>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function download(path) {
     fetch('{{ url_for("api.api_download") }}', {
         method: 'POST',

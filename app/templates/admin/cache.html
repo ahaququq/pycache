@@ -33,7 +33,7 @@
 <div class="card">
     <h2>Actions</h2>
     <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-        <form method="post" action="{{ url_for('admin.purge_cache') }}" onsubmit="return confirm('Purge ALL cached files? This cannot be undone.')">
+        <form method="post" action="{{ url_for('admin.purge_cache') }}" data-confirm="Purge ALL cached files? This cannot be undone.">
             <button class="btn btn-danger" type="submit">Purge All Cache</button>
         </form>
         <a class="btn" href="{{ url_for('admin.cache_config') }}">Configure Limits</a>

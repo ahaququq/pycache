@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/editor/editor.main.css" integrity="sha384-vM1I2tX5O8LFw9rR+0aKhTALgp79+eftGolrWigRgz00corKuvRe3yBTSvhdXzkA" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/editor/editor.main.css" integrity="sha384-WCfMZP6K9Oykzu17MglzYPUUUPrgmWK2WglGpqyNEzX/A9Yo9txzqQf4IO+7RbFW" crossorigin="anonymous">
 <style>
     #editor { height: 500px; width: 100%; border: 1px solid var(--border); border-radius: 4px; }
     .editor-toolbar { margin-bottom: .5rem; }
@@ -44,10 +44,10 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs/loader.js" integrity="sha384-xXXeNEz43h+82zodta2grAIjmwBoxtKGpqaPZQiKBRWw6KmyAgv9pjEVgySI523t" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js" integrity="sha384-tSPY4oVmbJKVAvy9W7NTVMqSrS/gYyJLECoFWtQ10h4qIDQTg1h3DSfF0eV2Bbbz" crossorigin="anonymous"></script>
 <script nonce="{{ csp_nonce }}">
 // Load Monaco editor
-require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/min/vs' }});
+require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs' }});
 require(['vs/editor/editor.main'], function() {
     var editor = monaco.editor.create(document.getElementById('editor'), {
         value: {{ content|tojson }},

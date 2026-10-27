@@ -32,7 +32,7 @@
                 <td class="muted mono">{{ m.remote_url }}</td>
                 <td>{{ 'Yes' if m.enabled else 'No' }}</td>
                 <td class="actions">
-                    <form method="post" action="{{ url_for('admin.delete_mapping', source_id=source.id, mapping_id=m.id) }}" style="display:inline;" onsubmit="return confirm('Delete this mapping?')">
+                    <form method="post" action="{{ url_for('admin.delete_mapping', source_id=source.id, mapping_id=m.id) }}" style="display:inline;" data-confirm="Delete this mapping?">
                         <button class="btn btn-danger" type="submit">Delete</button>
                     </form>
                 </td>

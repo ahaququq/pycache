@@ -83,7 +83,7 @@
                             {% if s.kind == 'db' %}
                                 <a class="btn" href="{{ url_for('admin.source_mappings', source_id=s.id) }}">Mappings</a>
                             {% endif %}
-                            <form method="post" action="{{ url_for('admin.delete_source', source_id=s.id) }}" style="display:inline;" onsubmit="return confirm('Delete this source?')">
+                            <form method="post" action="{{ url_for('admin.delete_source', source_id=s.id) }}" style="display:inline;" data-confirm="Delete this source?">
                                 <button class="btn btn-danger" type="submit">Delete</button>
                             </form>
                         </td>
