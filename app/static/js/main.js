@@ -157,6 +157,11 @@
             const path = btn.getAttribute('data-path');
             const url = btn.getAttribute('data-url') || '/api/download';
             
+            // Add loading state to button
+            btn.disabled = true;
+            btn.dataset.originalText = btn.textContent;
+            btn.innerHTML = '<span class="spinner"></span> Downloading...';
+            
             // Create notification
             const notification = createDownloadNotification(path);
             
@@ -172,8 +177,13 @@
                 } else {
                     completeDownloadNotification(path, false, d.error);
                 }
+                // Restore button
+                btn.disabled = false;
+                btn.textContent = btn.dataset.originalText || 'Download';
             }).catch(err => {
                 completeDownloadNotification(path, false, err.message);
+                btn.disabled = false;
+                btn.textContent = btn.dataset.originalText || 'Download';
             });
         });
     });
