@@ -61,9 +61,13 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
+    function formatSpeed(bps) {
+        return formatBytes(bps) + '/s';
+    }
+
     function createDownloadNotification(path, totalBytes) {
         const notification = document.createElement('div');
-        notification.className = 'download-notification';
+        notification.className = 'download-notification downloading';
         notification.dataset.path = path;
         
         const filename = path.split('/').pop() || path;
@@ -110,7 +114,7 @@
         }
         
         if (speed) {
-            speedText.textContent = ' • ' + formatBytes(speed) + '/s';
+            speedText.textContent = ' • ' + formatSpeed(speed);
         }
     }
 
@@ -134,21 +138,33 @@
             speedText.textContent = '';
         }
         
-        // Remove after delay
+        // Remove after delay - stays until user dismisses or timeout
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => {
                 notification.remove();
                 activeDownloads.delete(path);
             }, 300);
-        }, success ? 3000 : 5000);
+        }, success ? 5000 : 10000);
+    }
+
+    function removeDownloadNotification(path) {
+        const notification = activeDownloads.get(path);
+        if (!notification) return;
+        
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+            activeDownloads.delete(path);
+        }, 300);
     }
 
     // Expose for use in other scripts
     window.downloadNotifications = {
         start: createDownloadNotification,
         update: updateDownloadNotification,
-        complete: completeDownloadNotification
+        complete: completeDownloadNotification,
+        remove: removeDownloadNotification
     };
 
     // Download and probe buttons
@@ -162,7 +178,7 @@
             btn.dataset.originalText = btn.textContent;
             btn.innerHTML = '<span class="spinner"></span> Downloading...';
             
-            // Create notification
+            // Create notification - will stay until download completes
             const notification = createDownloadNotification(path);
             
             fetch(url, {
