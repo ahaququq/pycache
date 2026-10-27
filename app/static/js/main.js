@@ -49,22 +49,131 @@
         });
     });
 
+    // Notification system
+    const notificationContainer = document.getElementById('notification-container');
+    let activeDownloads = new Map();
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function createDownloadNotification(path, totalBytes) {
+        const notification = document.createElement('div');
+        notification.className = 'download-notification';
+        notification.dataset.path = path;
+        
+        const filename = path.split('/').pop() || path;
+        const sizeText = totalBytes ? ' (' + formatBytes(totalBytes) + ')' : '';
+        
+        notification.innerHTML = `
+            <div class="notification-header">
+                <span class="notification-title">Downloading</span>
+                <span class="notification-filename" title="${path}">${filename}${sizeText}</span>
+            </div>
+            <div class="notification-progress-container">
+                <div class="notification-progress-bar" style="width: 0%"></div>
+            </div>
+            <div class="notification-details">
+                <span class="notification-progress-text">Starting...</span>
+                <span class="notification-speed"></span>
+            </div>
+        `;
+        
+        notificationContainer.appendChild(notification);
+        activeDownloads.set(path, notification);
+        
+        // Trigger reflow for animation
+        notification.offsetHeight;
+        notification.classList.add('show');
+        
+        return notification;
+    }
+
+    function updateDownloadNotification(path, downloaded, total, speed) {
+        const notification = activeDownloads.get(path);
+        if (!notification) return;
+        
+        const progressBar = notification.querySelector('.notification-progress-bar');
+        const progressText = notification.querySelector('.notification-progress-text');
+        const speedText = notification.querySelector('.notification-speed');
+        
+        if (total) {
+            const percent = Math.min(100, (downloaded / total) * 100);
+            progressBar.style.width = percent + '%';
+            progressText.textContent = formatBytes(downloaded) + ' / ' + formatBytes(total) + ' (' + percent.toFixed(1) + '%)';
+        } else {
+            progressText.textContent = formatBytes(downloaded) + ' downloaded';
+        }
+        
+        if (speed) {
+            speedText.textContent = ' • ' + formatBytes(speed) + '/s';
+        }
+    }
+
+    function completeDownloadNotification(path, success, errorMsg) {
+        const notification = activeDownloads.get(path);
+        if (!notification) return;
+        
+        notification.classList.remove('downloading');
+        notification.classList.add(success ? 'completed' : 'failed');
+        
+        const progressBar = notification.querySelector('.notification-progress-bar');
+        const progressText = notification.querySelector('.notification-progress-text');
+        const speedText = notification.querySelector('.notification-speed');
+        
+        if (success) {
+            progressBar.style.width = '100%';
+            progressText.textContent = 'Download complete';
+            speedText.textContent = '';
+        } else {
+            progressText.textContent = 'Failed: ' + (errorMsg || 'Unknown error');
+            speedText.textContent = '';
+        }
+        
+        // Remove after delay
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.remove();
+                activeDownloads.delete(path);
+            }, 300);
+        }, success ? 3000 : 5000);
+    }
+
+    // Expose for use in other scripts
+    window.downloadNotifications = {
+        start: createDownloadNotification,
+        update: updateDownloadNotification,
+        complete: completeDownloadNotification
+    };
+
     // Download and probe buttons
     document.querySelectorAll('button[data-action="download"]').forEach(btn => {
         btn.addEventListener('click', () => {
             const path = btn.getAttribute('data-path');
-            const url = btn.getAttribute('data-url') || '{{ url_for("api.api_download") }}';
+            const url = btn.getAttribute('data-url') || '/api/download';
+            
+            // Create notification
+            const notification = createDownloadNotification(path);
+            
             fetch(url, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({local_path: path})
             }).then(r => r.json()).then(d => {
                 if (d.ok) {
-                    alert('Downloaded ' + d.bytes + ' bytes');
-                    location.reload();
+                    completeDownloadNotification(path, true);
+                    // Reload page after a short delay to update the table
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    alert('Failed: ' + d.error);
+                    completeDownloadNotification(path, false, d.error);
                 }
+            }).catch(err => {
+                completeDownloadNotification(path, false, err.message);
             });
         });
     });
@@ -72,17 +181,17 @@
     document.querySelectorAll('button[data-action="probe"]').forEach(btn => {
         btn.addEventListener('click', () => {
             const path = btn.getAttribute('data-path');
-            const url = btn.getAttribute('data-url') || '{{ url_for("api.probe") }}';
+            const url = btn.getAttribute('data-url') || '/api/probe';
             fetch(url, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({local_path: path})
             }).then(r => r.json()).then(d => {
-                let msg = 'Status: ' + d.status + '\\n';
-                msg += 'Exists: ' + d.exists + '\\n';
-                msg += 'Size: ' + (d.size ? d.size + ' bytes' : 'unknown') + '\\n';
+                let msg = 'Status: ' + d.status + '\n';
+                msg += 'Exists: ' + d.exists + '\n';
+                msg += 'Size: ' + (d.size ? d.size + ' bytes' : 'unknown') + '\n';
                 msg += 'Final URL: ' + d.final_url;
-                if (d.error) msg += '\\nError: ' + d.error;
+                if (d.error) msg += '\nError: ' + d.error;
                 alert(msg);
             });
         });

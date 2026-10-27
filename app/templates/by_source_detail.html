@@ -45,46 +45,15 @@
                 <td class="muted">{{ r.last_checked or '—' }}</td>
                 <td class="actions">
                     {% if not r.cached %}
-                        <button class="btn btn-primary" data-action="download" data-path="{{ r.local_path }}">Download</button>
+                        <button class="btn btn-primary" data-action="download" data-path="{{ r.local_path }}" data-url="{{ url_for('api.api_download') }}">Download</button>
                     {% else %}
                         <a class="btn" href="{{ url_for('public.serve_cached', local_path=r.local_path) }}">Serve</a>
                     {% endif %}
-                    <button class="btn btn-outline" data-action="probe" data-path="{{ r.local_path }}">Probe</button>
+                    <button class="btn btn-outline" data-action="probe" data-path="{{ r.local_path }}" data-url="{{ url_for('api.probe') }}">Probe</button>
                 </td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
 </div>
-
-<script nonce="{{ csp_nonce }}">
-function download(path) {
-    fetch('{{ url_for("api.api_download") }}', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({local_path: path})
-    }).then(r => r.json()).then(d => {
-        if (d.ok) {
-            alert('Downloaded ' + d.bytes + ' bytes');
-            location.reload();
-        } else {
-            alert('Failed: ' + d.error);
-        }
-    });
-}
-function probe(path) {
-    fetch('{{ url_for("api.probe") }}', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({local_path: path})
-    }).then(r => r.json()).then(d => {
-        let msg = 'Status: ' + d.status + '\\n';
-        msg += 'Exists: ' + d.exists + '\\n';
-        msg += 'Size: ' + (d.size ? d.size + ' bytes' : 'unknown') + '\\n';
-        msg += 'Final URL: ' + d.final_url;
-        if (d.error) msg += '\\nError: ' + d.error;
-        alert(msg);
-    });
-}
-</script>
 {% endblock %}

@@ -236,3 +236,146 @@ tr.missing .badge-missing { display: inline-block; }
 code { background: var(--code-bg); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
 pre { background: var(--code-bg); padding: 1rem; border-radius: 4px; overflow: auto; border: 1px solid var(--border); }
 pre code { background: transparent; padding: 0; }
+
+/* Notification System */
+.notification-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+    max-width: 350px;
+}
+
+@media (max-width: 480px) {
+    .notification-container {
+        left: 1rem;
+        right: 1rem;
+        max-width: none;
+        bottom: 1rem;
+    }
+}
+
+.download-notification {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    box-shadow: var(--shadow);
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.download-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.download-notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--accent);
+}
+
+.download-notification.completed::before {
+    background: var(--success);
+}
+
+.download-notification.failed::before {
+    background: var(--error);
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.notification-title {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--accent);
+}
+
+.download-notification.completed .notification-title {
+    color: var(--success);
+}
+
+.download-notification.failed .notification-title {
+    color: var(--error);
+}
+
+.notification-filename {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: ui-monospace, monospace;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-progress-container {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.35rem;
+}
+
+.notification-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.download-notification.completed .notification-progress-bar {
+    background: linear-gradient(90deg, var(--success), #22c55e);
+    width: 100% !important;
+}
+
+.download-notification.failed .notification-progress-bar {
+    background: linear-gradient(90deg, var(--error), #ef4444);
+}
+
+.notification-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    color: var(--muted);
+}
+
+.notification-progress-text {
+    font-family: ui-monospace, monospace;
+}
+
+.notification-speed {
+    font-family: ui-monospace, monospace;
+    color: var(--success);
+}
+
+.download-notification.failed .notification-progress-text {
+    color: var(--error);
+}
+
+/* Download button loading state */
+button[data-action="download"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

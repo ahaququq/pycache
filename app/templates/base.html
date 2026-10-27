@@ -54,6 +54,9 @@
         <span class="cache-status">Cache: {{ cache_stats().total_bytes | human_bytes }}</span>
     </footer>
 
+    <!-- Notification container for download progress -->
+    <div id="notification-container" class="notification-container" aria-live="polite"></div>
+
     <script src="{{ url_for('static', filename='js/main.js') }}" nonce="{{ csp_nonce }}"></script>
     {% block scripts %}{% endblock %}
 </body>
