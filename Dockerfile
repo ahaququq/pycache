@@ -44,6 +44,7 @@ COPY --chown=app:app app ./app
 COPY --chown=app:app wsgi.py .
 COPY --chown=app:app nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --chown=app:app nginx/conf.d/cache.conf /etc/nginx/conf.d/cache.conf
+COPY --chown=app:app docs ./docs
 
 # Create cache and data directories
 RUN mkdir -p /app/app/cache /app/app/data && chown -R app:app /app/app/cache /app/app/data

@@ -388,6 +388,115 @@ def probe(local_path: str):
 
 
 # ---------------------------------------------------------------------------
+# Documentation page
+# ---------------------------------------------------------------------------
+@public.route("/docs/<path:doc_path>")
+def serve_doc(doc_path: str) -> Response:
+    from pathlib import Path
+    from flask import current_app, abort, Response
+    
+    docs_dir = Path(current_app.config.get(
+        "DOCS_DIR", str(Path(__file__).parent.parent.parent / "docs")
+    ))
+    
+    doc_file = (docs_dir / doc_path).resolve()
+    docs_dir_resolved = docs_dir.resolve()
+    
+    if not doc_file.is_file():
+        abort(404, f"documentation not found: {doc_path}")
+    
+    if not str(doc_file).startswith(str(docs_dir_resolved)):
+        abort(404, "invalid documentation path")
+    
+    try:
+        md_content = doc_file.read_text(encoding="utf-8")
+    except Exception:
+        abort(500, f"failed to read documentation: {doc_path}")
+    
+    # Basic markdown to HTML conversion
+    lines = md_content.split("\n")
+    html_parts = []
+    i = 0
+    in_list = False
+    in_table = False
+    table_rows = []
+    
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        
+        if not stripped:
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            if in_table and table_rows:
+                html_parts.append("</table>")
+                in_table = False
+                table_rows = []
+            i += 1
+            continue
+        
+        header_level = 0
+        if stripped.startswith("# "):
+            header_level = 1
+            content = stripped[2:]
+        elif stripped.startswith("## "):
+            header_level = 2
+            content = stripped[3:]
+        elif stripped.startswith("### "):
+            header_level = 3
+            content = stripped[4:]
+        else:
+            content = stripped
+        
+        if header_level == 1:
+            if in_list: html_parts.append("</ul>"); in_list = False
+            if in_table and table_rows: html_parts.append("</table>"); in_table = False; table_rows = []
+            html_parts.append("<h1>" + content + "</h1>")
+        elif header_level == 2:
+            if in_list: html_parts.append("</ul>"); in_list = False
+            if in_table and table_rows: html_parts.append("</table>"); in_table = False; table_rows = []
+            html_parts.append("<h2>" + content + "</h2>")
+        elif header_level == 3:
+            if in_list: html_parts.append("</ul>"); in_list = False
+            if in_table and table_rows: html_parts.append("</table>"); in_table = False; table_rows = []
+            html_parts.append("<h3>" + content + "</h3>")
+        else:
+            if '|' in content and content.count("|") >= 2 and i + 1 < len(lines) and "|---" in lines[i+1]:
+                in_table = True
+                rows = [c.strip() for c in content.split("|") if c.strip()]
+                table_rows = [rows]
+                i += 1
+                continue
+            elif in_table:
+                rows = [c.strip() for c in content.split("|") if c.strip()]
+                if rows:
+                    table_rows.append(rows)
+                if i + 1 >= len(lines) or (lines[i+1].strip() and not "|" in lines[i+1]):
+                    html_parts.append("<table>")
+                    for trows in table_rows:
+                        html_parts.append("<tr>")
+                        for cell in trows:
+                            html_parts.append("<td>" + cell + "</td>")
+                        html_parts.append("</tr>")
+                    html_parts.append("</table>")
+                    in_table = False
+                    table_rows = []
+            else:
+                html_parts.append("<p>" + content + "</p>")
+        
+        i += 1
+    
+    if in_list: html_parts.append("</ul>")
+    if in_table and table_rows: html_parts.append("</table>")
+    html_body = "".join(html_parts)
+    
+    page_html = "<!DOCTYPE html><html lang=\"en\" data-theme=\"auto\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><link rel=\"stylesheet\" href=\"/static/css/main.css\"></head><body><header class=\"topbar\"><div class=\"topbar-left\"><a href=\"/\" class=\"brand\">Cache Server</a><nav class=\"breadcrumb\"><span><a href=\"/\">Home</a></span><span>/</span><span>Documentation</span></nav></div><div class=\"topbar-right\"><a href=\"/admin/dashboard\" class=\"btn\">Dashboard</a><a href=\"/admin/logout\" class=\"btn btn-outline\">Logout</a></div></header><main class=\"container\"><div class=\"content\">" + html_body + "</div></main><footer class=\"footer\"><span>Cache Server</span></footer></body></html>"
+    
+    return Response(page_html, mimetype="text/html")
+
+
+# ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
 @public.route("/health")
