@@ -160,6 +160,7 @@ def by_path():
     rows = db.fetchall(
         """
         SELECT f.local_path, f.cached, f.size, f.exists_upstream,
+               f.unavailable, f.unavailable_reason,
                f.last_checked, f.remote_url
         FROM files f
         JOIN sources s ON s.id = f.source_id
@@ -177,15 +178,20 @@ def by_path():
         
         cached = cached_files.get(item.local_path)
         if cached:
-            cached_flag = cached["cached"]
-            size = cached["size"]
-            exists_upstream = cached["exists_upstream"]
-            last_checked = cached["last_checked"]
-            remote_url = cached["remote_url"]
+            cached_dict = dict(cached) if not isinstance(cached, dict) else cached
+            cached_flag = cached_dict["cached"]
+            size = cached_dict["size"]
+            exists_upstream = cached_dict["exists_upstream"]
+            unavailable = cached_dict.get("unavailable", 0)
+            unavailable_reason = cached_dict.get("unavailable_reason")
+            last_checked = cached_dict["last_checked"]
+            remote_url = cached_dict["remote_url"]
         else:
             cached_flag = 0
             size = item.size
             exists_upstream = 1  # Available from source but not yet cached
+            unavailable = 0
+            unavailable_reason = None
             last_checked = None
             remote_url = item.remote_url
         
@@ -195,6 +201,8 @@ def by_path():
             "cached": cached_flag,
             "size": size,
             "exists_upstream": exists_upstream,
+            "unavailable": unavailable,
+            "unavailable_reason": unavailable_reason,
             "last_checked": last_checked,
             "source_name": source_name,
             "source_id": sid,
@@ -277,7 +285,9 @@ def by_source_detail(source_id: int):
     cached_files = {}
     rows = db.fetchall(
         """
-        SELECT local_path, cached, size, exists_upstream, last_checked, remote_url
+        SELECT local_path, cached, size, exists_upstream,
+               unavailable, unavailable_reason,
+               last_checked, remote_url
         FROM files
         WHERE source_id=?
         """,
@@ -291,15 +301,20 @@ def by_source_detail(source_id: int):
     for item in all_items:
         cached = cached_files.get(item.local_path)
         if cached:
-            cached_flag = cached["cached"]
-            size = cached["size"]
-            exists_upstream = cached["exists_upstream"]
-            last_checked = cached["last_checked"]
-            remote_url = cached["remote_url"]
+            cached_dict = dict(cached) if not isinstance(cached, dict) else cached
+            cached_flag = cached_dict["cached"]
+            size = cached_dict["size"]
+            exists_upstream = cached_dict["exists_upstream"]
+            unavailable = cached_dict.get("unavailable", 0)
+            unavailable_reason = cached_dict.get("unavailable_reason")
+            last_checked = cached_dict["last_checked"]
+            remote_url = cached_dict["remote_url"]
         else:
             cached_flag = 0
             size = item.size
             exists_upstream = 1  # Available from source but not yet cached
+            unavailable = 0
+            unavailable_reason = None
             last_checked = None
             remote_url = item.remote_url
         
@@ -309,6 +324,8 @@ def by_source_detail(source_id: int):
             "cached": cached_flag,
             "size": size,
             "exists_upstream": exists_upstream,
+            "unavailable": unavailable,
+            "unavailable_reason": unavailable_reason,
             "last_checked": last_checked,
         })
     
@@ -333,6 +350,28 @@ def probe(local_path: str):
         abort(404)
     source_id, mod, remote_url = res
     result = head(remote_url)
+    
+    # Update DB with probe result
+    if result.ok:
+        db.execute(
+            """INSERT INTO files (source_id, local_path, remote_url, exists_upstream, unavailable, unavailable_reason, last_checked)
+            VALUES (?, ?, ?, 1, 0, NULL, datetime('now'))
+            ON CONFLICT(source_id, local_path) DO UPDATE SET
+            exists_upstream=1, unavailable=0, unavailable_reason=NULL, last_checked=datetime('now')""",
+            (source_id, local_path, remote_url),
+        )
+    else:
+        # File is listed but unavailable
+        error_reason = result.error or f"HTTP {result.status}"
+        db.execute(
+            """INSERT INTO files (source_id, local_path, remote_url, exists_upstream, unavailable, unavailable_reason, last_checked)
+            VALUES (?, ?, ?, 0, 1, ?, datetime('now'))
+            ON CONFLICT(source_id, local_path) DO UPDATE SET
+            exists_upstream=0, unavailable=1, unavailable_reason=?, last_checked=datetime('now')""",
+            (source_id, local_path, remote_url, error_reason, error_reason),
+        )
+    db._conn().commit()
+    
     return {
         "local_path": local_path,
         "remote_url": remote_url,
@@ -344,6 +383,7 @@ def probe(local_path: str):
         "etag": result.etag,
         "last_modified": result.last_modified,
         "error": result.error,
+        "unavailable_reason": result.error if not result.ok else None
     }
 
 

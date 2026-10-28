@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS files (
     etag        TEXT,
     last_modified TEXT,
     exists_upstream INTEGER NOT NULL DEFAULT 0,  -- 1 if HEAD probe succeeded
+    unavailable INTEGER NOT NULL DEFAULT 0,     -- 1 if file listed but unavailable (404, 403, etc.)
+    unavailable_reason TEXT,                  -- error reason (e.g., '404 Not Found', '403 Forbidden')
     last_checked TEXT,
     UNIQUE (source_id, local_path)
 );

@@ -218,7 +218,7 @@
                 msg += 'Size: ' + (d.size ? d.size + ' bytes' : 'unknown') + '\n';
                 msg += 'Final URL: ' + d.final_url;
                 if (d.error) msg += '\nError: ' + d.error;
-                alert(msg);
+                // Don't use alert, the modal will show the result
             });
         });
     });

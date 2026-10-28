@@ -30,27 +30,35 @@
         </thead>
         <tbody>
         {% for r in rows %}
-            {% set cls = 'cached' if r.cached else ('upstream-only' if r.exists_upstream else 'missing') %}
+            {% if r.unavailable %}
+                {% set cls = 'unavailable' %}
+                {% set status_badge = '<span class="badge badge-unavailable" title="' ~ (r.unavailable_reason or 'Unavailable') ~ '">Unavailable</span>' %}
+            {% elif r.cached %}
+                {% set cls = 'cached' %}
+                {% set status_badge = '<span class="badge badge-cached">Cached</span>' %}
+            {% elif r.exists_upstream %}
+                {% set cls = 'upstream-only' %}
+                {% set status_badge = '<span class="badge badge-upstream">Upstream</span>' %}
+            {% else %}
+                {% set cls = 'missing' %}
+                {% set status_badge = '<span class="badge badge-missing">Missing</span>' %}
+            {% endif %}
             <tr class="{{ cls }}">
                 <td class="path mono">{{ r.local_path }}</td>
                 <td>{{ r.source_name }}</td>
                 <td>
-                    {% if r.cached %}
-                        <span class="badge badge-cached">Cached</span>
-                    {% elif r.exists_upstream %}
-                        <span class="badge badge-upstream">Upstream</span>
-                    {% else %}
-                        <span class="badge badge-missing">Missing</span>
-                    {% endif %}
+                    {{ status_badge|safe }}
                 </td>
                 <td class="mono">{{ r.size | human_bytes if r.size else '—' }}</td>
                 <td class="muted mono">{{ r.remote_url }}</td>
                 <td class="muted">{{ r.last_checked or '—' }}</td>
                 <td class="actions">
-                    {% if not r.cached %}
+                    {% if not r.cached and not r.unavailable %}
                         <button class="btn btn-primary" data-action="download" data-path="{{ r.local_path }}" data-url="{{ url_for('api.api_download') }}">Download</button>
-                    {% else %}
+                    {% elif r.cached %}
                         <a class="btn" href="{{ url_for('public.serve_cached', local_path=r.local_path) }}">Serve</a>
+                    {% elif r.unavailable %}
+                        <span class="btn btn-disabled" title="{{ r.unavailable_reason }}">Unavailable</span>
                     {% endif %}
                     <button class="btn btn-outline" data-action="probe" data-path="{{ r.local_path }}" data-url="{{ url_for('api.probe') }}">Probe</button>
                 </td>
@@ -59,4 +67,94 @@
         </tbody>
     </table>
 </div>
+
+<!-- Probe result modal -->
+<div id="probe-modal" class="modal" style="display:none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Probe Result</h3>
+            <button class="modal-close" id="probe-modal-close">&times;</button>
+        </div>
+        <div class="modal-body" id="probe-modal-body">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+function openProbeModal(path) {
+    fetch('/api/probe', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({local_path: path})
+    }).then(r => r.json()).then(d => {
+        const body = document.getElementById('probe-modal-body');
+        let html = '<table style="width:100%; border-collapse: collapse;">';
+        html += '<tr><th style="text-align:left; padding: 0.5rem;">Property</th><th style="text-align:left; padding: 0.5rem;">Value</th></tr>';
+        
+        const fields = [
+            ['Local Path', d.local_path],
+            ['Remote URL', d.remote_url],
+            ['Final URL', d.final_url],
+            ['Status', d.status + (d.exists ? ' ✓' : ' ✗')],
+            ['Exists', d.exists ? 'Yes' : 'No'],
+            ['Size', d.size ? d.size + ' bytes' : 'Unknown'],
+            ['Content Type', d.content_type || 'Unknown'],
+            ['ETag', d.etag || 'N/A'],
+            ['Last Modified', d.last_modified || 'N/A'],
+            ['Error', d.error || 'None'],
+            ['Unavailable Reason', d.unavailable_reason || 'N/A']
+        ];
+        
+        fields.forEach(([key, value]) => {
+            html += '<tr><td style="padding: 0.5rem; font-weight: bold; border-bottom: 1px solid var(--border);">' + key + '</td>';
+            html += '<td style="padding: 0.5rem; border-bottom: 1px solid var(--border); font-family: monospace; word-break: break-all;">' + (value || '—') + '</td></tr>';
+        });
+        
+        html += '</table>';
+        body.innerHTML = html;
+        
+        document.getElementById('probe-modal').style.display = 'flex';
+    });
+}
+
+function closeProbeModal() {
+    document.getElementById('probe-modal').style.display = 'none';
+}
+
+// Close modal on backdrop click
+document.getElementById('probe-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeProbeModal();
+});
+
+// Close modal on X button click
+const closeBtn = document.getElementById('probe-modal-close');
+if (closeBtn) {
+    closeBtn.addEventListener('click', closeProbeModal);
+}
+
+// Close modal on backdrop click (not on modal content)
+const probeModal = document.getElementById('probe-modal');
+if (probeModal) {
+    probeModal.addEventListener('click', function(e) {
+        if (e.target === this) closeProbeModal();
+    });
+}
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeProbeModal();
+});
+
+// Probe button handler
+document.querySelectorAll('button[data-action="probe"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const path = btn.getAttribute('data-path');
+        openProbeModal(path);
+    });
+});
+</script>
 {% endblock %}

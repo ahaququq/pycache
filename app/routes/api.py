@@ -26,6 +26,28 @@ def probe():
         return jsonify({"ok": False, "error": "no source provides this path"}), 404
     source_id, mod, remote_url = res
     result = head(remote_url)
+    
+    # Update DB with probe result
+    if result.ok:
+        db.execute(
+            """INSERT INTO files (source_id, local_path, remote_url, exists_upstream, unavailable, unavailable_reason, last_checked)
+            VALUES (?, ?, ?, 1, 0, NULL, datetime('now'))
+            ON CONFLICT(source_id, local_path) DO UPDATE SET
+            exists_upstream=1, unavailable=0, unavailable_reason=NULL, last_checked=datetime('now')""",
+            (source_id, local_path, remote_url),
+        )
+    else:
+        # File is listed but unavailable
+        error_reason = result.error or f"HTTP {result.status}"
+        db.execute(
+            """INSERT INTO files (source_id, local_path, remote_url, exists_upstream, unavailable, unavailable_reason, last_checked)
+            VALUES (?, ?, ?, 0, 1, ?, datetime('now'))
+            ON CONFLICT(source_id, local_path) DO UPDATE SET
+            exists_upstream=0, unavailable=1, unavailable_reason=?, last_checked=datetime('now')""",
+            (source_id, local_path, remote_url, error_reason, error_reason),
+        )
+    db._conn().commit()
+    
     return jsonify(
         {
             "ok": True,
@@ -40,6 +62,7 @@ def probe():
             "etag": result.etag,
             "last_modified": result.last_modified,
             "error": result.error,
+            "unavailable_reason": result.error if not result.ok else None
         }
     )
 
