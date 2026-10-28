@@ -70,6 +70,7 @@ PyCache is a **Dockerized Nginx + Python modular caching server** that serves as
 - [Unavailable Files](./07-unavailable-files.md)
 - [Log Viewer](./08-log-viewer.md)
 - [Gradle Integration](./09-gradle-integration.md)
+- [System-Wide Gradle Setup](./14-gradle-system-wide.md)
 - [Configuration](./10-configuration.md)
 - [API Reference](./11-api-reference.md)
 - [Troubleshooting](./12-troubleshooting.md)

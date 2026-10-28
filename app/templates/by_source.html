@@ -13,6 +13,17 @@
 </div>
 
 <div class="table-wrap">
+    <div class="card" style="margin-top:1rem;">
+        <h2>Quick Links</h2>
+        <ul style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.5rem; list-style:none;">
+            <li><a href="{{ url_for('public.by_path') }}">📁 Browse Files</a></li>
+            <li><a href="{{ url_for('public.by_source') }}">📦 Browse Sources</a></li>
+            <li><a href="/docs/14-gradle-system-wide.md">📖 System-Wide Gradle Setup</a></li>
+            <li><a href="{{ url_for('admin.dashboard') }}">⚙️ Admin Dashboard</a></li>
+            <li><a href="{{ url_for('public.health') }}">💚 Health</a></li>
+        </ul>
+    </div>
+</div>
     <table>
         <thead>
             <tr>
