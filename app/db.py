@@ -1,10 +1,17 @@
-"""SQLite database layer.
+"""
+SQLite database layer.
 
 We deliberately use SQLite: it is serverless (no separate DB process to
 maintain inside a container), file based (so it travels with the data dir),
 fast enough for our index/metadata workload, and available in the Python
 standard library. All access goes through a single connection per thread
 with WAL mode for concurrent readers.
+
+See Also:
+    docs/13-appendix.md: Database schema reference
+    docs/05-download-system.md: Database updates during downloads
+    docs/07-unavailable-files.md: Unavailable file tracking
+    docs/08-log-viewer.md: Log entries table
 """
 from __future__ import annotations
 
@@ -88,14 +95,37 @@ CREATE INDEX IF NOT EXISTS idx_log_module ON log_entries(module);
 
 
 class Database:
-    """Thread-local SQLite connection wrapper."""
+    """Thread-local SQLite connection wrapper.
 
+    Provides thread-safe database access with:
+    - WAL mode for concurrent readers
+    - Row factory for dict-like access
+    - Thread-local connections
+    - Transaction context manager
+
+    See Also:
+        docs/13-appendix.md: Database schema reference
+        docs/05-download-system.md: Database updates during downloads
+        docs/07-unavailable-files.md: Unavailable file tracking
+        docs/08-log-viewer.md: Log entries table
+    """
     def __init__(self, path: str | None = None) -> None:
         self.path = str(path or DB_PATH)
         self._local = threading.local()
 
     # -- connection management ------------------------------------------------
     def _conn(self) -> sqlite3.Connection:
+        """Get thread-local database connection.
+
+        Creates connection on first access with:
+        - WAL mode for concurrent readers
+        - 5 second busy timeout
+        - Foreign keys enabled
+        - Row factory for dict-like access
+
+        Returns:
+            Thread-local sqlite3.Connection
+        """
         conn = getattr(self._local, "conn", None)
         if conn is None:
             conn = sqlite3.connect(self.path, check_same_thread=False)
@@ -108,6 +138,17 @@ class Database:
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:
+        """Context manager for database transactions.
+
+        Automatically commits on success, rolls back on exception.
+
+        Yields:
+            Database connection
+
+        Example:
+            with db.transaction() as conn:
+                conn.execute("INSERT INTO ...")
+        """
         conn = self._conn()
         try:
             yield conn
@@ -117,19 +158,59 @@ class Database:
             raise
 
     def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
+        """Execute a single SQL statement.
+
+        Args:
+            sql: SQL query string
+            params: Query parameters
+
+        Returns:
+            sqlite3.Cursor for result iteration
+        """
         return self._conn().execute(sql, params)
 
     def executemany(self, sql: str, params: list) -> sqlite3.Cursor:
+        """Execute SQL with multiple parameter sets.
+
+        Args:
+            sql: SQL query string
+            params: List of parameter tuples
+
+        Returns:
+            sqlite3.Cursor
+        """
         return self._conn().executemany(sql, params)
 
     def fetchone(self, sql: str, params: tuple = ()) -> sqlite3.Row | None:
+        """Execute query and return single row.
+
+        Args:
+            sql: SQL query string
+            params: Query parameters
+
+        Returns:
+            sqlite3.Row or None if no results
+        """
         return self._conn().execute(sql, params).fetchone()
 
     def fetchall(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
+        """Execute query and return all rows.
+
+        Args:
+            sql: SQL query string
+            params: Query parameters
+
+        Returns:
+            List of sqlite3.Row objects
+        """
         return self._conn().execute(sql, params).fetchall()
 
     def init(self) -> None:
-        """Create schema and default admin row if missing."""
+        """Initialize database schema.
+
+        Creates all tables and indexes if they don't exist.
+        Called once at application startup.
+        """
         self._conn().executescript(SCHEMA)
         self._conn().commit()
 

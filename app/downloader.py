@@ -1,8 +1,14 @@
-"""Upstream download helper.
+"""
+Upstream download helper.
 
 Resolves redirect chains and downloads the *final* payload, never a redirect
 page. Used both by the request handler and by modules that want to fetch
 something themselves.
+
+See Also:
+    docs/05-download-system.md: Download system architecture and flow
+    docs/04-live-tracker.md: Tracker events for downloads
+    docs/06-doh-dns.md: DoH DNS resolution
 """
 from __future__ import annotations
 
@@ -35,6 +41,22 @@ _SESSION.allow_redirects = False
 
 @dataclass
 class DownloadResult:
+    """
+    Result of a download operation.
+
+    Attributes:
+        ok: True if download succeeded
+        status: HTTP status code
+        final_url: Final URL after redirects
+        content_type: MIME type of response
+        content_length: Content length in bytes
+        etag: HTTP ETag header
+        last_modified: Last-Modified header
+        error: Error message if failed
+        cached_path: Local path to cached file
+        bytes_written: Number of bytes written
+        redirected: True if redirects were followed
+    """
     ok: bool = False
     status: int = 0
     final_url: str = ""
@@ -49,11 +71,31 @@ class DownloadResult:
 
 
 def _is_redirect(status: int) -> bool:
+    """Check if HTTP status code is a redirect.
+
+    Args:
+        status: HTTP status code
+
+    Returns:
+        True if status is a redirect (301, 302, 303, 307, 308)
+    """
     return status in (301, 302, 303, 307, 308)
 
 
 def head(url: str, timeout: Optional[int] = None) -> DownloadResult:
-    """Probe a URL (HEAD) to learn size / existence without downloading."""
+    """Probe a URL (HEAD) to learn size / existence without downloading.
+
+    Args:
+        url: URL to probe
+        timeout: Request timeout in seconds (default: UPSTREAM_TIMEOUT)
+
+    Returns:
+        DownloadResult with probe results (status, content_length, etag, etc.)
+
+    See Also:
+        docs/05-download-system.md: Probe system documentation
+        docs/04-live-tracker.md: Tracker events for probes
+"""
     res = DownloadResult()
     current = url
     seen = 0
@@ -84,8 +126,25 @@ def head(url: str, timeout: Optional[int] = None) -> DownloadResult:
 def download(url: str, timeout: Optional[int] = None, local_path: str = "", source_name: str = "") -> DownloadResult:
     """Download ``url``, following redirects, caching the final payload.
 
-    Returns a DownloadResult. On success ``cached_path`` points at the cached
-    file and ``bytes_written`` is its size.
+    Args:
+        url: URL to download
+        timeout: Request timeout in seconds (default: UPSTREAM_TIMEOUT)
+        local_path: Local path for tracking (used for progress events)
+        source_name: Source name for tracking
+
+    Returns:
+        DownloadResult with ok, cached_path, bytes_written, etc.
+
+    Process:
+        1. GET request with streaming
+        2. Follow redirects (max MAX_REDIRECTS)
+        3. Stream to temp file with progress updates every 500ms
+        4. Atomic rename to final cache location
+        5. Tracker events: start, redirect, progress, complete/error
+
+    See Also:
+        docs/05-download-system.md: Download system architecture
+        docs/04-live-tracker.md: Tracker events for downloads
     """
     res = DownloadResult()
     current = url

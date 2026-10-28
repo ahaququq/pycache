@@ -1,4 +1,5 @@
-"""Source manager.
+"""
+Source manager.
 
 A *source* is a row in the ``sources`` table: a name, a kind (the module
 that backs it), and a JSON config blob. The manager turns each enabled source
@@ -7,6 +8,11 @@ module named by ``kind``) and injects the source's id/config into it.
 
 This is what lets a single Gradle module back many sources with different
 index URLs, and what lets ``db`` sources be created on the fly.
+
+See Also:
+    docs/05-download-system.md: Source resolution during downloads
+    docs/03-admin-panel.md: Source management in admin panel
+    docs/09-gradle-integration.md: Gradle source configuration
 """
 from __future__ import annotations
 
@@ -34,12 +40,26 @@ def _as_dict(value) -> dict:
 
 
 class SourceManager:
+    """Manages source instances and path resolution.
+
+    Loads enabled sources from the database, instantiates their backing
+    modules, and maintains an index for fast path resolution.
+
+    See Also:
+        docs/03-admin-panel.md: Source management in admin panel
+        docs/05-download-system.md: Source resolution during downloads
+        docs/09-gradle-integration.md: Gradle source configuration
+    """
     def __init__(self) -> None:
         self._instances: dict[int, ModuleBase] = {}  # source_id -> module instance
         self._by_path: dict[str, tuple[int, ModuleBase]] = {}  # local_path -> (source_id, inst)
 
     def reload(self) -> None:
-        """Rebuild the instance map from the sources table."""
+        """Rebuild the instance map from the sources table.
+
+        Queries the database for enabled sources, instantiates their
+        backing modules, and rebuilds the path index.
+        """
         rows = db.fetchall(
             "SELECT id, name, kind, config, enabled FROM sources WHERE enabled=1"
         )

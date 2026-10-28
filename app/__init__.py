@@ -1,6 +1,14 @@
-"""Flask application factory.
+"""
+Flask application factory.
 
 Wires together the DB, module registry, source manager, auth, and routes.
+
+See Also:
+    docs/00-overview.md: Project architecture overview
+    docs/01-installation.md: Installation and setup
+    docs/03-admin-panel.md: Admin panel features
+    docs/04-live-tracker.md: Live tracker and SSE
+    docs/08-log-viewer.md: Log viewer and DBLogHandler
 """
 from __future__ import annotations
 

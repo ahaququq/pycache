@@ -1,7 +1,13 @@
-"""Central configuration for the caching server.
+"""
+Central configuration for the caching server.
 
 All tunables live here so that the Docker image can be configured via
 environment variables without touching any code.
+
+See Also:
+    docs/10-configuration.md: Complete configuration reference
+    docs/01-installation.md: Environment variables in docker-compose.yml
+    docs/06-doh-dns.md: DNS configuration
 """
 from __future__ import annotations
 
@@ -12,6 +18,15 @@ from pathlib import Path
 
 
 def _env_bool(name: str, default: bool) -> bool:
+    """Parse boolean from environment variable.
+
+    Args:
+        name: Environment variable name
+        default: Default value if not set
+
+    Returns:
+        Parsed boolean value
+    """
     raw = os.environ.get(name)
     if raw is None:
         return default
@@ -19,6 +34,15 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _env_int(name: str, default: int) -> int:
+    """Parse integer from environment variable.
+
+    Args:
+        name: Environment variable name
+        default: Default value if not set
+
+    Returns:
+        Parsed integer or default
+    """
     raw = os.environ.get(name)
     if raw is None or raw.strip() == "":
         return default
@@ -29,7 +53,16 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _env_bytes(name: str, default: int) -> int:
-    """Parse a human friendly size like '16G', '512M', '1024' (bytes)."""
+    """Parse human-readable size from environment variable.
+
+    Args:
+        name: Environment variable name
+        default: Default value in bytes
+
+    Returns:
+        Size in bytes. Supports suffixes K, M, G, T.
+        Examples: '16G', '512M', '1024'
+    """
     raw = os.environ.get(name)
     if raw is None or raw.strip() == "":
         return default
@@ -61,6 +94,9 @@ DB_PATH = DATA_DIR / "cache_server.db"
 for _d in (CACHE_DIR, DATA_DIR, MODULES_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
+# ---------------------------------------------------------------------------
+# Cache limits
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # Cache limits
 # ---------------------------------------------------------------------------

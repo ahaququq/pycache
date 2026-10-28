@@ -1,6 +1,12 @@
-"""Live tracker for downloads and serves.
+"""
+Live tracker for downloads and serves.
 
 Provides real-time event streaming via Server-Sent Events (SSE).
+
+See Also:
+    docs/04-live-tracker.md: Live tracker dashboard and SSE
+    docs/05-download-system.md: Download events
+    docs/08-log-viewer.md: Event logging
 """
 from __future__ import annotations
 
